@@ -8,6 +8,8 @@ import { getListings } from '../services/api';
 const MarketplacePage = () => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [maxPrice, setMaxPrice] = useState(100);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -24,6 +26,20 @@ const MarketplacePage = () => {
     fetchListings();
   }, []);
 
+  const handleFilterChange = (category) => {
+    setSelectedCategory(category);
+  };
+
+  const handlePriceChange = (price) => {
+    setMaxPrice(price);
+  };
+
+  const filteredListings = listings.filter(listing => {
+    const categoryMatch = selectedCategory === 'All' || listing.type === selectedCategory;
+    const priceMatch = listing.discountedPrice <= maxPrice;
+    return categoryMatch && priceMatch;
+  });
+
   return (
     <div>
       <Header />
@@ -31,13 +47,18 @@ const MarketplacePage = () => {
         <h1>Available Now</h1>
         <div className="marketplace-layout">
           <aside className="filters-sidebar">
-            <Filters />
+            <Filters
+              onFilterChange={handleFilterChange}
+              onPriceChange={handlePriceChange}
+              maxPrice={maxPrice}
+              selectedCategory={selectedCategory}
+            />
           </aside>
           <section className="listings-grid">
             {loading ? (
               <p>Loading listings...</p>
             ) : (
-              listings.map(listing => (
+              filteredListings.map(listing => (
                 <ListingCard key={listing.id} listing={listing} />
               ))
             )}
