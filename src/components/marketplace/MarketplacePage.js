@@ -3,14 +3,14 @@ import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import ListingCard from '../components/marketplace/ListingCard';
 import Filters from '../components/marketplace/Filters';
-import BookingModal from './BookingModal';
+import BookingModal from '../components/marketplace/BookingModal';
 import { getListings } from '../services/api';
 
 const MarketplacePage = () => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [maxPrice, setMaxPrice] = useState(200);
+  const [maxPrice, setMaxPrice] = useState(100);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
 
@@ -76,21 +76,21 @@ const MarketplacePage = () => {
             {loading ? (
               <p>Loading listings...</p>
             ) : (
-              filteredListings.map((listing) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  onBook={handleBookClick}
+              filteredListings.map(listing => (
+                <ListingCard 
+                  key={listing.id} 
+                  listing={listing} 
+                  onBook={handleBookClick} 
                 />
               ))
             )}
           </section>
         </div>
-        <BookingModal
-          listing={selectedListing}
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onConfirm={handleConfirmBooking}
+        <BookingModal 
+          listing={selectedListing} 
+          isOpen={isModalOpen} 
+          onClose={handleCloseModal} 
+          onConfirm={handleConfirmBooking} 
         />
       </main>
       <Footer />

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ListingCard = ({ listing }) => {
+const ListingCard = ({ listing, onBook }) => {
   const {
     title,
     seller,
@@ -36,7 +36,7 @@ const ListingCard = ({ listing }) => {
           <p>Appointment at: <strong>{formatAppointmentTime(appointmentTime)}</strong></p>
         </div>
         
-        <button className="book-now-btn">Book Now</button>
+        <button className="book-now-btn" onClick={() => onBook(listing)}>Book Now</button>
       </div>
     </div>
   );
