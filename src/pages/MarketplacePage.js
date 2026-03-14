@@ -10,6 +10,7 @@ import BookingModal from './BookingModal';
 import SearchAutocomplete from '../components/common/SearchAutocomplete';
 import { getListings, searchListings } from '../services/api';
 import { searchAddressSuggestions } from '../services/geocode';
+import { sortListingsByDistance, getUserPosition } from '../services/maps';
 
 const CATEGORIES = ['All Services', 'Barbershop', 'Gym Class', 'Salon', 'Physio'];
 const VIEW_LIST = 'list';
@@ -27,6 +28,10 @@ const MarketplacePage = () => {
   const [listingsError, setListingsError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('All Services');
   const [viewMode, setViewMode] = useState(VIEW_LIST);
+  const [sortMode, setSortMode] = useState('Recommended');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const resultsSectionRef = useRef(null);
@@ -78,6 +83,24 @@ const MarketplacePage = () => {
       ? baseList
       : baseList.filter((listing) => listing.type === activeCategory);
 
+  const sortedListingsForView = useMemo(() => {
+    const list = [...filteredListings];
+    if (sortMode === 'Price: Low to High') {
+      return list.sort((a, b) => (a.discountedPrice || a.originalPrice || 0) - (b.discountedPrice || b.originalPrice || 0));
+    }
+    if (sortMode === 'Highest Discount') {
+      return list.sort((a, b) => {
+        const discountA = (a.originalPrice || 0) - (a.discountedPrice || 0);
+        const discountB = (b.originalPrice || 0) - (b.discountedPrice || 0);
+        return discountB - discountA;
+      });
+    }
+    if (sortMode === 'Distance from me' && userLocation) {
+      return sortListingsByDistance(list, userLocation);
+    }
+    return list;
+  }, [filteredListings, sortMode, userLocation]);
+
   // Autocomplete suggestions from listings
   const serviceSuggestions = useMemo(() => {
     const seen = new Set();
@@ -94,6 +117,23 @@ const MarketplacePage = () => {
   const handleBookClick = (listing) => {
     setSelectedListing(listing);
     setIsModalOpen(true);
+  };
+
+  const handleSortChange = async (e) => {
+    const nextMode = e.target.value;
+    setSortMode(nextMode);
+    if (nextMode === 'Distance from me' && !userLocation && !locationLoading) {
+      setLocationError('');
+      setLocationLoading(true);
+      try {
+        const pos = await getUserPosition();
+        setUserLocation(pos);
+      } catch (err) {
+        setLocationError(err?.message || 'Could not get your location.');
+      } finally {
+        setLocationLoading(false);
+      }
+    }
   };
 
   const handleCloseModal = () => {
@@ -251,11 +291,29 @@ const MarketplacePage = () => {
                 Map / Near me
               </motion.button>
             </div>
-            <select className="hidden sm:block rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary px-4 py-2 outline-none shadow-sm hover:shadow transition-shadow">
-              <option>Recommended</option>
-              <option>Price: Low to High</option>
-              <option>Highest Discount</option>
-            </select>
+            <div className="hidden sm:flex flex-col items-end gap-1">
+              <select
+                value={sortMode}
+                onChange={handleSortChange}
+                className="rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary px-4 py-2 outline-none shadow-sm hover:shadow transition-shadow"
+              >
+                <option>Recommended</option>
+                <option>Price: Low to High</option>
+                <option>Highest Discount</option>
+                <option>Distance from me</option>
+              </select>
+              {sortMode === 'Distance from me' && (
+                <span className="text-[11px] text-brand-muted">
+                  {locationLoading
+                    ? 'Detecting your location…'
+                    : locationError
+                      ? locationError
+                      : userLocation
+                        ? 'Sorted by distance from your location'
+                        : 'We will sort after getting your location'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -265,14 +323,18 @@ const MarketplacePage = () => {
           </p>
         )}
         {viewMode === VIEW_MAP ? (
-          <StoresMapView listings={filteredListings} onBook={handleBookClick} />
+          <StoresMapView
+            listings={sortedListingsForView}
+            onBook={handleBookClick}
+            sortByDistance={sortMode === 'Distance from me'}
+          />
         ) : (
           <>
             {loading ? (
               <p className="text-brand-muted text-center py-12">Loading listings...</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {filteredListings.map((listing, idx) => (
+                {sortedListingsForView.map((listing, idx) => (
                   <ListingCard
                     key={listing.id}
                     listing={listing}

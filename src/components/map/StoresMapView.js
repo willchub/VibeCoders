@@ -6,9 +6,11 @@ import { sortListingsByDistance, DEFAULT_CENTER } from '../../services/maps';
 import { getDistanceKm } from '../../services/maps';
 
 /**
- * Map + list of stores. Default center is user's current location; "Near me" re-fetches and sorts by distance.
+ * Map + list of stores. Default center is user's current location; "Near me" re-fetches.
+ * When `sortByDistance` is true, the list is sorted by distance from the user; otherwise
+ * it keeps the incoming `listings` order (while still showing distance labels).
  */
-const StoresMapView = ({ listings, onBook }) => {
+const StoresMapView = ({ listings, onBook, sortByDistance = false }) => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [selectedListingId, setSelectedListingId] = useState(null);
@@ -26,9 +28,9 @@ const StoresMapView = ({ listings, onBook }) => {
   );
 
   const sortedListings = useMemo(() => {
-    if (!userLocation) return listingsWithLocation;
+    if (!sortByDistance || !userLocation) return listingsWithLocation;
     return sortListingsByDistance(listingsWithLocation, userLocation);
-  }, [listingsWithLocation, userLocation]);
+  }, [listingsWithLocation, userLocation, sortByDistance]);
 
   const mapCenter = useMemo(() => {
     if (userLocation) return userLocation;
@@ -109,7 +111,7 @@ const StoresMapView = ({ listings, onBook }) => {
             <option value="osm">OpenStreetMap</option>
           </select>
         </label>
-        {userLocation && (
+        {userLocation && sortByDistance && (
           <span style={{ fontSize: 14, color: '#666' }}>
             Showing stores sorted by distance from your location
           </span>
