@@ -12,6 +12,7 @@ const StoresMapView = ({ listings, onBook }) => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [selectedListingId, setSelectedListingId] = useState(null);
+  const [mapStyle, setMapStyle] = useState('carto-light');
 
   const listingsWithLocation = useMemo(
     () => listings.filter((l) => l.location && typeof l.location.lat === 'number'),
@@ -79,6 +80,18 @@ const StoresMapView = ({ listings, onBook }) => {
         >
           Near me
         </button>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+          Map style:
+          <select
+            value={mapStyle}
+            onChange={(e) => setMapStyle(e.target.value)}
+            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #ddd' }}
+          >
+            <option value="carto-light">Light (high quality)</option>
+            <option value="carto-dark">Dark</option>
+            <option value="osm">OpenStreetMap</option>
+          </select>
+        </label>
         {userLocation && (
           <span style={{ fontSize: 14, color: '#666' }}>
             Showing stores sorted by distance from your location
@@ -96,6 +109,7 @@ const StoresMapView = ({ listings, onBook }) => {
             zoom={userLocation && listingsWithLocation.length === 0 ? 14 : 13}
             markers={markers}
             onMarkerClick={handleMarkerClick}
+            tileLayer={mapStyle}
             style={{ width: '100%', height: '100%', minHeight: 400 }}
           />
         </div>

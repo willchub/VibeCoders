@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -10,6 +10,25 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+// Tile layer presets: different styles and quality. All free, no API key.
+const TILE_LAYERS = {
+  'carto-light': {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 20,
+  },
+  'carto-dark': {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 20,
+  },
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  },
+};
 
 function ChangeView({ center, zoom }) {
   const map = useMap();
@@ -35,6 +54,7 @@ function MapClickHandler({ onMapClick }) {
 /**
  * Renders an OpenStreetMap map with optional markers (Leaflet).
  * No API key required.
+ * tileLayer: 'carto-light' (default, crisp) | 'carto-dark' | 'osm'
  */
 const MapView = ({
   center,
@@ -44,6 +64,7 @@ const MapView = ({
   onMarkerClick,
   style = { width: '100%', height: '400px' },
   mapContainerClassName = '',
+  tileLayer = 'carto-light',
 }) => {
   const pos = center && typeof center.lat === 'number' && typeof center.lng === 'number'
     ? [center.lat, center.lng]
@@ -56,6 +77,11 @@ const MapView = ({
     [onMapClick]
   );
 
+  const layerConfig = useMemo(
+    () => TILE_LAYERS[tileLayer] || TILE_LAYERS['carto-light'],
+    [tileLayer]
+  );
+
   return (
     <div className={mapContainerClassName} style={{ ...style, minHeight: 200 }}>
       <MapContainer
@@ -63,12 +89,16 @@ const MapView = ({
         zoom={zoom}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom
+        maxZoom={layerConfig.maxZoom}
+        minZoom={2}
       >
         <ChangeView center={center} zoom={zoom} />
         <MapClickHandler onMapClick={handleMapClick} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={layerConfig.attribution}
+          url={layerConfig.url}
+          maxZoom={layerConfig.maxZoom}
+          detectRetina
         />
         {markers.map((m) => (
           <Marker
