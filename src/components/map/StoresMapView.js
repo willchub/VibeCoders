@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import MapView from './MapView';
 import ListingCard from '../marketplace/ListingCard';
 import { getUserPosition } from '../../services/maps';
@@ -54,6 +54,17 @@ const StoresMapView = ({ listings, onBook }) => {
   const handleMarkerClick = useCallback((marker) => {
     setSelectedListingId(marker.id);
   }, []);
+
+  const cardRefs = useRef({});
+
+  useEffect(() => {
+    if (selectedListingId && cardRefs.current[selectedListingId]) {
+      cardRefs.current[selectedListingId].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [selectedListingId]);
 
   const distanceFromUser = (listing) => {
     if (!userLocation || !listing.location) return null;
@@ -122,6 +133,7 @@ const StoresMapView = ({ listings, onBook }) => {
             sortedListings.map((listing) => (
               <div
                 key={listing.id}
+                ref={(el) => { cardRefs.current[listing.id] = el; }}
                 onClick={() => setSelectedListingId(listing.id)}
                 style={{
                   marginBottom: 12,
