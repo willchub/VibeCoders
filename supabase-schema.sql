@@ -58,7 +58,10 @@ create table if not exists public.listings (
   image_url text,
   appointment_time timestamptz not null default now(),
   rating numeric default 4.5,
-  reviews integer default 0
+  reviews integer default 0,
+  lat numeric,
+  lng numeric,
+  address text
 );
 
 alter table public.listings enable row level security;

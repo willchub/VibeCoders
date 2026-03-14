@@ -1,19 +1,27 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
-// Map DB row (snake_case) to app shape (camelCase)
-const rowToListing = (row) => ({
-  id: row.id,
-  title: row.title,
-  seller: row.seller,
-  type: row.type,
-  originalPrice: row.original_price,
-  discountedPrice: row.discounted_price,
-  imageUrl: row.image_url,
-  appointmentTime: row.appointment_time,
-  rating: row.rating ?? 4.5,
-  reviews: row.reviews ?? 0,
-  location: row.location ?? null,
-});
+// Map DB row (snake_case) to app shape (camelCase). Build location from lat/lng/address or jsonb.
+const rowToListing = (row) => {
+  let location = null;
+  if (row.lat != null && row.lng != null) {
+    location = { lat: Number(row.lat), lng: Number(row.lng), address: row.address || null };
+  } else if (row.location && typeof row.location === 'object') {
+    location = row.location;
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    seller: row.seller,
+    type: row.type,
+    originalPrice: row.original_price,
+    discountedPrice: row.discounted_price,
+    imageUrl: row.image_url,
+    appointmentTime: row.appointment_time,
+    rating: row.rating ?? 4.5,
+    reviews: row.reviews ?? 0,
+    location,
+  };
+};
 
 // Mock data used when Supabase is not configured
 const mockListings = [
@@ -100,21 +108,24 @@ export const createListing = async (listing) => {
     : new Date().toISOString();
 
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
-      .from('listings')
-      .insert({
-        title: listing.title || 'Untitled',
-        seller: listing.seller || 'My Business',
-        type: listing.type || 'Salon',
-        original_price: Number(listing.originalPrice) || 0,
-        discounted_price: Number(listing.discountedPrice) || 0,
-        image_url: listing.imageUrl || DEFAULT_IMAGE,
-        appointment_time: appointmentTime,
-        rating: 4.5,
-        reviews: 0,
-      })
-      .select()
-      .single();
+    const loc = listing.location;
+    const insertRow = {
+      title: listing.title || 'Untitled',
+      seller: listing.seller || 'My Business',
+      type: listing.type || 'Salon',
+      original_price: Number(listing.originalPrice) || 0,
+      discounted_price: Number(listing.discountedPrice) || 0,
+      image_url: listing.imageUrl || DEFAULT_IMAGE,
+      appointment_time: appointmentTime,
+      rating: 4.5,
+      reviews: 0,
+    };
+    if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+      insertRow.lat = loc.lat;
+      insertRow.lng = loc.lng;
+      insertRow.address = loc.address || null;
+    }
+    const { data, error } = await supabase.from('listings').insert(insertRow).select().single();
     if (error) throw error;
     return rowToListing(data);
   }
@@ -141,11 +152,31 @@ export const createListing = async (listing) => {
   });
 };
 
-// Simulates saving/updating a store's location (in a real app this would POST/PATCH to backend)
-export const saveStoreLocation = (listingId, location) => {
+/**
+ * Update a listing's location. Uses Supabase when configured, otherwise mock.
+ */
+export const saveStoreLocation = async (listingId, location) => {
+  if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+    throw new Error('Invalid location');
+  }
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('listings')
+      .update({
+        lat: location.lat,
+        lng: location.lng,
+        address: location.address || null,
+      })
+      .eq('id', listingId)
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToListing(data);
+  }
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const listing = mockListings.find((l) => l.id === listingId);
+      const id = typeof listingId === 'string' && !Number.isNaN(Number(listingId)) ? Number(listingId) : listingId;
+      const listing = mockListings.find((l) => l.id === id || l.id === listingId);
       if (listing) {
         listing.location = { ...location };
         resolve(listing);
