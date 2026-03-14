@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import MapView from './MapView';
 import ListingCard from '../marketplace/ListingCard';
 import { getUserPosition } from '../../services/maps';
@@ -60,6 +60,17 @@ const StoresMapView = ({ listings, onBook }) => {
   const handleMarkerClick = useCallback((marker) => {
     setSelectedListingId(marker.id);
   }, []);
+
+  const cardRefs = useRef({});
+
+  useEffect(() => {
+    if (selectedListingId && cardRefs.current[selectedListingId]) {
+      cardRefs.current[selectedListingId].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+      });
+    }
+  }, [selectedListingId]);
 
   const distanceFromUser = (listing) => {
     if (!userLocation || !listing.location) return null;
@@ -128,6 +139,7 @@ const StoresMapView = ({ listings, onBook }) => {
             sortedListings.map((listing) => (
               <div
                 key={listing.id}
+                ref={(el) => { cardRefs.current[listing.id] = el; }}
                 onClick={() => setSelectedListingId(listing.id)}
                 style={{
                   marginBottom: 12,
@@ -136,6 +148,18 @@ const StoresMapView = ({ listings, onBook }) => {
                   border: selectedListingId === listing.id ? '2px solid #3498db' : '1px solid #eee',
                   borderRadius: 8,
                   cursor: 'pointer',
+                  boxShadow: selectedListingId === listing.id ? '0 4px 12px rgba(0,0,0,0.08)' : '0 1px 3px rgba(0,0,0,0.06)',
+                  transition: 'box-shadow 0.2s, transform 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedListingId !== listing.id) {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedListingId !== listing.id) {
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
+                  }
                 }}
               >
                 <ListingCard listing={listing} onBook={onBook} />

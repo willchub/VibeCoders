@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const ListingCard = ({ listing, index = 0, onBook }) => {
+  const navigate = useNavigate();
   const {
     title,
     seller,
@@ -40,10 +42,11 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
     <motion.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow group cursor-pointer"
-      onClick={() => onBook(listing)}
-      onKeyDown={(e) => e.key === 'Enter' && onBook(listing)}
+      whileTap={{ scale: 0.98 }}
+      transition={{ delay: index * 0.1, duration: 0.2 }}
+      className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group cursor-pointer"
+      onClick={() => navigate(`/listing/${listing.id}`)}
+      onKeyDown={(e) => e.key === 'Enter' && navigate(`/listing/${listing.id}`)}
       role="button"
       tabIndex={0}
     >

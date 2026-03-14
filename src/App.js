@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import CheckoutCancelPage from './pages/CheckoutCancelPage';
+import ListingDetailPage from './pages/ListingDetailPage';
 import './index.css';
 import './assets/styles/main.css';
 
@@ -18,6 +19,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/marketplace" element={<MarketplacePage />} />
+          <Route path="/listing/:id" element={<ListingDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/seller-dashboard" element={<SellerDashboardPage />} />
