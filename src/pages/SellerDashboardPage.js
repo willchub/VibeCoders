@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, MapPin } from 'lucide-react';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
-import { createListing } from '../services/api';
+import LocationPicker from '../components/map/LocationPicker';
+import { getListings, saveStoreLocation, createListing } from '../services/api';
 
 const LISTING_TYPES = ['Barbershop', 'Gym Class', 'Salon', 'Physio'];
 
 const SellerDashboardPage = () => {
   const navigate = useNavigate();
+  const [listings, setListings] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -20,6 +26,20 @@ const SellerDashboardPage = () => {
     imageUrl: '',
     appointmentTime: '',
   });
+
+  useEffect(() => {
+    getListings().then(setListings);
+  }, []);
+
+  const selectedListing = listings.find((l) => l.id === selectedId);
+
+  useEffect(() => {
+    if (selectedListing?.location) {
+      setLocation({ ...selectedListing.location });
+    } else {
+      setLocation(null);
+    }
+  }, [selectedId, selectedListing]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,9 +86,30 @@ const SellerDashboardPage = () => {
         imageUrl: '',
         appointmentTime: '',
       });
+      getListings().then(setListings);
     } catch (err) {
       const message = err?.message || err?.error_description || 'Something went wrong. Please try again.';
       setError(message);
+    }
+  };
+
+  const handleSaveLocation = async () => {
+    if (!selectedId || !location?.lat) {
+      setMessage({ type: 'error', text: 'Select a store and pick a location on the map.' });
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    try {
+      await saveStoreLocation(selectedId, location);
+      setMessage({ type: 'success', text: 'Store location saved.' });
+      setListings((prev) =>
+        prev.map((l) => (l.id === selectedId ? { ...l, location: { ...location } } : l))
+      );
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save.' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -86,7 +127,9 @@ const SellerDashboardPage = () => {
             View marketplace
           </button>
         </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+
+        {/* Create listing */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
           <h2 className="text-lg font-bold text-brand-secondary mb-1 flex items-center gap-2">
             <PlusCircle className="h-5 w-5 text-brand-primary" />
             Create a listing
@@ -220,6 +263,55 @@ const SellerDashboardPage = () => {
               Create listing
             </button>
           </form>
+        </div>
+
+        {/* Set store location */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <h2 className="text-lg font-bold text-brand-secondary mb-1 flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-brand-primary" />
+            Set store location
+          </h2>
+          <p className="text-brand-muted text-sm mb-6">
+            Choose an existing listing and set its location so users can find you on the map.
+          </p>
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-brand-secondary">
+              Select store
+            </label>
+            <select
+              value={selectedId ?? ''}
+              onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
+            >
+              <option value="">— Select a store —</option>
+              {listings.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.seller} – {l.title}
+                </option>
+              ))}
+            </select>
+            <LocationPicker
+              value={location}
+              onChange={setLocation}
+              height="400px"
+              placeholder="Search address or click map..."
+            />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSaveLocation}
+                disabled={saving || !location?.lat}
+                className="py-3 px-6 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : 'Save location'}
+              </button>
+              {message && (
+                <span className={`text-sm ${message.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>
+                  {message.text}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </main>
       <Footer />
