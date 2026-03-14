@@ -7,10 +7,13 @@ import {
   getCardType,
 } from '../utils/cardValidation';
 import { validateCardWithBIN } from '../services/binLookupApi';
+import { createTransaction } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const CARD_TYPE_LABELS = { visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex', discover: 'Discover' };
 
 const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState(null);
@@ -113,6 +116,21 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
     }
 
     setPaying(true);
+    try {
+      await createTransaction({
+        listingId: listing.id,
+        listingTitle: listing.title,
+        seller: listing.seller,
+        amount: listing.discountedPrice,
+        currency: 'USD',
+        status: 'completed',
+        paymentMethod: 'card',
+        buyerEmail: user?.email ?? null,
+        userId: user?.id ?? null,
+      });
+    } catch (err) {
+      console.error('Failed to record transaction:', err);
+    }
     onConfirm?.();
     setTimeout(() => navigate('/checkout-success'), 400);
   };

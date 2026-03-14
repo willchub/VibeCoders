@@ -278,3 +278,25 @@ export const saveStoreLocation = async (listingId, location) => {
     }, 300);
   });
 };
+
+/**
+ * Record a transaction in Supabase when a booking is completed.
+ * No-op if Supabase is not configured.
+ * @param {{ listingId, listingTitle, seller, amount, currency?, status?, paymentMethod?, buyerEmail?, userId? }} payload
+ */
+export const createTransaction = async (payload) => {
+  if (!isSupabaseConfigured()) return null;
+  const { error } = await supabase.from('transactions').insert({
+    listing_id: String(payload.listingId),
+    listing_title: payload.listingTitle || null,
+    seller: payload.seller || null,
+    amount: Number(payload.amount) || 0,
+    currency: payload.currency || 'USD',
+    status: payload.status || 'completed',
+    payment_method: payload.paymentMethod || 'card',
+    buyer_email: payload.buyerEmail || null,
+    user_id: payload.userId || null,
+  });
+  if (error) throw error;
+  return null;
+};
