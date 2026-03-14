@@ -142,6 +142,18 @@ const StoresMapView = ({ listings, onBook }) => {
                   border: selectedListingId === listing.id ? '2px solid #3498db' : '1px solid #eee',
                   borderRadius: 8,
                   cursor: 'pointer',
+                  boxShadow: selectedListingId === listing.id ? '0 4px 12px rgba(0,0,0,0.08)' : '0 1px 3px rgba(0,0,0,0.06)',
+                  transition: 'box-shadow 0.2s, transform 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedListingId !== listing.id) {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedListingId !== listing.id) {
+                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
+                  }
                 }}
               >
                 <ListingCard listing={listing} onBook={onBook} />
