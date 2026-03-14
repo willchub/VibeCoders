@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import Header from '../components/common/Header';
@@ -15,6 +16,8 @@ const VIEW_LIST = 'list';
 const VIEW_MAP = 'map';
 
 const MarketplacePage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState(null);
@@ -43,6 +46,16 @@ const MarketplacePage = () => {
     };
     fetchListings();
   }, []);
+
+  // Open booking modal when navigating from detail page with "Book now"
+  useEffect(() => {
+    const toBook = location.state?.openBooking;
+    if (toBook) {
+      setSelectedListing(toBook);
+      setIsModalOpen(true);
+      navigate(location.pathname, { replace: true, state: {} }); // clear state
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const handleSearch = useCallback(async () => {
     setSearchLoading(true);

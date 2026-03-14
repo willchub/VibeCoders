@@ -16,14 +16,19 @@ const rowToListing = (row) => {
     originalPrice: row.original_price,
     discountedPrice: row.discounted_price,
     imageUrl: row.image_url,
+    imageUrls: row.image_urls || (row.image_url ? [row.image_url] : null),
     appointmentTime: row.appointment_time,
     rating: row.rating ?? 4.5,
     reviews: row.reviews ?? 0,
     location,
+    suburb: row.suburb || null,
+    description: row.description || null,
+    instagramUrl: row.instagram_url || null,
   };
 };
 
 // Mock data used when Supabase is not configured
+// Enriched with description, suburb, imageUrls (carousel), instagramUrl for detail page
 const mockListings = [
   {
     id: 1,
@@ -33,10 +38,18 @@ const mockListings = [
     originalPrice: 40,
     discountedPrice: 25,
     imageUrl: 'https://images.unsplash.com/photo-1599305445671-ac28a54c44ac?q=80&w=2940&auto=format&fit=crop',
+    imageUrls: [
+      'https://images.unsplash.com/photo-1599305445671-ac28a54c44ac?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1200&auto=format&fit=crop',
+    ],
     appointmentTime: '2026-03-13T16:00:00Z',
     location: { lat: -37.8136, lng: 144.9631, address: '123 Collins St, Melbourne VIC' },
+    suburb: 'Melbourne CBD',
     rating: 4.8,
     reviews: 120,
+    description: 'A premium barbershop experience in the heart of Melbourne. Our skilled barbers deliver sharp cuts and beard trims in a relaxed, masculine atmosphere. Last-minute slots available when cancellations occur.',
+    instagramUrl: 'https://instagram.com/thedapperbarber',
   },
   {
     id: 2,
@@ -46,10 +59,18 @@ const mockListings = [
     originalPrice: 25,
     discountedPrice: 15,
     imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=3000&auto=format&fit=crop',
+    imageUrls: [
+      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?q=80&w=1200&auto=format&fit=crop',
+    ],
     appointmentTime: '2026-03-13T18:30:00Z',
     location: { lat: -37.8150, lng: 144.9650, address: '45 Bourke St, Melbourne VIC' },
+    suburb: 'Melbourne CBD',
     rating: 4.9,
     reviews: 85,
+    description: 'Rejuvenate with our signature Vinyasa Flow class. A cancelled booking means you get this premium studio experience at a fraction of the price. All levels welcome.',
+    instagramUrl: 'https://instagram.com/zenithyogastudio',
   },
   {
     id: 3,
@@ -59,10 +80,18 @@ const mockListings = [
     originalPrice: 55,
     discountedPrice: 40,
     imageUrl: 'https://images.unsplash.com/photo-1604654894610-df644ba33c36?q=80&w=2940&auto=format&fit=crop',
+    imageUrls: [
+      'https://images.unsplash.com/photo-1604654894610-df644ba33c36?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1609445474565-6f0c6b2e7d1f?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1200&auto=format&fit=crop',
+    ],
     appointmentTime: '2026-03-14T11:00:00Z',
     location: { lat: -37.8120, lng: 144.9610, address: '78 Swanston St, Melbourne VIC' },
+    suburb: 'Melbourne CBD',
     rating: 4.7,
     reviews: 210,
+    description: 'Chloe creates stunning gel manicures that last weeks. Our open slot means you get a full gel mani with nail art at a discount. Walk-ins welcome for last-minute deals.',
+    instagramUrl: 'https://instagram.com/nailsbychloe',
   },
   {
     id: 4,
@@ -72,10 +101,18 @@ const mockListings = [
     originalPrice: 90,
     discountedPrice: 60,
     imageUrl: 'https://images.unsplash.com/photo-1581092912335-81539c83393c?q=80&w=2940&auto=format&fit=crop',
+    imageUrls: [
+      'https://images.unsplash.com/photo-1581092912335-81539c83393c?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=1200&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop',
+    ],
     appointmentTime: '2026-03-14T14:00:00Z',
     location: { lat: -37.8160, lng: 144.9680, address: '200 Exhibition St, Melbourne VIC' },
+    suburb: 'Melbourne CBD',
     rating: 5.0,
     reviews: 45,
+    description: 'Expert physiotherapy for sports injuries and recovery. A cancelled appointment means you can get same-day treatment at a reduced rate. Fully qualified practitioners.',
+    instagramUrl: 'https://instagram.com/activerecoveryphysio',
   },
 ];
 
@@ -96,6 +133,28 @@ export const getListings = async () => {
   }
   return new Promise((resolve) => {
     setTimeout(() => resolve([...mockListings]), 500);
+  });
+};
+
+/**
+ * Fetch a single listing by id. Uses Supabase when configured, otherwise mock.
+ */
+export const getListingById = async (id) => {
+  const idNum = typeof id === 'string' ? parseInt(id, 10) : id;
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('id', idNum)
+      .single();
+    if (error || !data) return null;
+    return rowToListing(data);
+  }
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const listing = mockListings.find((l) => l.id === idNum || l.id === id);
+      resolve(listing ? { ...listing } : null);
+    }, 200);
   });
 };
 
