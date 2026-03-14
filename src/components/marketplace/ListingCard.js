@@ -75,7 +75,7 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
             <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider">
               {type}
             </p>
-            <h3 className="text-lg font-bold text-brand-secondary leading-tight">{seller}</h3>
+            <h3 className="font-sans text-lg font-semibold text-brand-secondary leading-tight">{seller}</h3>
           </div>
           <div className="flex items-center text-xs font-medium">
             <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
@@ -83,7 +83,7 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
             <span className="text-brand-muted ml-1">({reviews})</span>
           </div>
         </div>
-        <p className="text-sm text-brand-muted mb-4">{title}</p>
+        <p className="font-sans text-sm text-brand-muted mb-4">{title}</p>
         <div className="flex items-center justify-between border-t border-gray-50 pt-4">
           <div className="flex flex-col">
             <span className="text-xs text-brand-muted line-through">${originalPrice}</span>

@@ -2,9 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Coral blush palette - applied directly so changes show immediately */
+:root {
+  --brand-primary: #E9967A;
+  --brand-secondary: #4A3728;
+  --brand-accent: #FFF0ED;
+  --brand-muted: #8B7355;
+}
+
 @layer base {
   body {
-    @apply bg-brand-accent text-brand-secondary font-sans antialiased;
+    background-color: var(--brand-accent);
+    color: var(--brand-secondary);
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
