@@ -292,3 +292,23 @@ body {
 .confirm-btn:hover {
     background-color: #27ae60;
 }
+
+/* Map / Stores near me */
+.stores-map-view .stores-map-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  min-height: 480px;
+}
+
+@media (max-width: 900px) {
+  .stores-map-view .stores-map-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.location-picker .map-error,
+.location-picker .map-loading,
+.location-picker .map-no-key {
+  border-radius: 8px;
+}
