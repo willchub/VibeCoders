@@ -88,7 +88,8 @@ const SellerDashboardPage = () => {
       });
       getListings().then(setListings);
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      const message = err?.message || err?.error_description || 'Something went wrong. Please try again.';
+      setError(message);
     }
   };
 

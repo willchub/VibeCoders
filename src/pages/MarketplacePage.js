@@ -15,6 +15,7 @@ const VIEW_MAP = 'map';
 const MarketplacePage = () => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [listingsError, setListingsError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('All Services');
   const [viewMode, setViewMode] = useState(VIEW_LIST);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,11 +23,13 @@ const MarketplacePage = () => {
 
   useEffect(() => {
     const fetchListings = async () => {
+      setListingsError(null);
       try {
         const data = await getListings();
         setListings(data);
       } catch (error) {
         console.error('Failed to fetch listings:', error);
+        setListingsError(error?.message || 'Failed to load listings.');
       } finally {
         setLoading(false);
       }
@@ -167,6 +170,11 @@ const MarketplacePage = () => {
           </div>
         </div>
 
+        {listingsError && (
+          <p className="text-red-500 text-center py-4 bg-red-50 rounded-xl mb-6" role="alert">
+            {listingsError}
+          </p>
+        )}
         {viewMode === VIEW_MAP ? (
           <StoresMapView listings={filteredListings} onBook={handleBookClick} />
         ) : (

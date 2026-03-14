@@ -2,23 +2,40 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
+import { useAuth } from '../contexts/AuthContext';
+import { signIn } from '../services/auth';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { setSessionFromAuth } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!email.trim() || !password) {
       setError('Please enter email and password.');
       return;
     }
-    // Mock sign in – in a real app you would call an auth API
-    console.log('Sign in', { email, password });
-    navigate('/marketplace');
+    setLoading(true);
+    try {
+      const { user, session: newSession, error: authError } = await signIn({ email: email.trim(), password });
+      if (authError) {
+        setError(authError.message || 'Sign in failed.');
+        return;
+      }
+      if (user) {
+        setSessionFromAuth(newSession || { user });
+        navigate('/marketplace');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -66,9 +83,10 @@ const LoginPage = () => {
             </div>
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-brand-secondary text-white font-semibold hover:bg-brand-secondary/90 transition-colors"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-brand-secondary text-white font-semibold hover:bg-brand-secondary/90 transition-colors disabled:opacity-70"
             >
-              Sign in
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-brand-muted">
