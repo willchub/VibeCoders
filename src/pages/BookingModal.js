@@ -7,7 +7,7 @@ import {
   getCardType,
 } from '../utils/cardValidation';
 import { validateCardWithBIN } from '../services/binLookupApi';
-import { createTransaction } from '../services/api';
+import { createTransaction, markListingSold } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const CARD_TYPE_LABELS = { visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex', discover: 'Discover' };
@@ -128,8 +128,10 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
         buyerEmail: user?.email ?? null,
         userId: user?.id ?? null,
       });
+      // After recording the transaction, mark this listing as sold so it no longer appears.
+      await markListingSold(listing.id);
     } catch (err) {
-      console.error('Failed to record transaction:', err);
+      console.error('Failed to complete booking:', err);
     }
     onConfirm?.();
     setTimeout(() => navigate('/checkout-success'), 400);

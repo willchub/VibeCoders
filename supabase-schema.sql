@@ -61,7 +61,8 @@ create table if not exists public.listings (
   reviews integer default 0,
   lat numeric,
   lng numeric,
-  address text
+  address text,
+  status text not null default 'available' check (status in ('available', 'sold', 'cancelled'))
 );
 
 alter table public.listings enable row level security;

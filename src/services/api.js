@@ -24,6 +24,7 @@ const rowToListing = (row) => {
     suburb: row.suburb || null,
     description: row.description || null,
     instagramUrl: row.instagram_url || null,
+    status: row.status || 'available',
   };
 };
 
@@ -127,12 +128,17 @@ export const getListings = async () => {
     const { data, error } = await supabase
       .from('listings')
       .select('*')
+      .eq('status', 'available')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(rowToListing);
   }
   return new Promise((resolve) => {
-    setTimeout(() => resolve([...mockListings]), 500);
+    setTimeout(() => {
+      // In mock mode, treat listings without status as available by default.
+      const available = mockListings.filter((l) => !l.status || l.status === 'available');
+      resolve([...available]);
+    }, 500);
   });
 };
 
@@ -140,16 +146,15 @@ export const getListings = async () => {
  * Fetch a single listing by id. Uses Supabase when configured, otherwise mock.
  */
 export const getListingById = async (id) => {
-  const idNum = typeof id === 'string' ? parseInt(id, 10) : id;
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
-      .from('listings')
-      .select('*')
-      .eq('id', idNum)
-      .single();
+    // Supabase `listings.id` is a UUID string, so query by the raw id value.
+    const { data, error } = await supabase.from('listings').select('*').eq('id', id).single();
     if (error || !data) return null;
     return rowToListing(data);
   }
+
+  // Mock mode: support both numeric ids and stringified numbers.
+  const idNum = typeof id === 'string' && !Number.isNaN(Number(id)) ? Number(id) : id;
   return new Promise((resolve) => {
     setTimeout(() => {
       const listing = mockListings.find((l) => l.id === idNum || l.id === id);
@@ -299,4 +304,25 @@ export const createTransaction = async (payload) => {
   });
   if (error) throw error;
   return null;
+};
+
+/**
+ * Mark a listing as sold after a successful booking.
+ * In Supabase mode updates the `status` column; in mock mode flags the in-memory listing.
+ */
+export const markListingSold = async (listingId) => {
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('listings')
+      .update({ status: 'sold' })
+      .eq('id', listingId);
+    if (error) throw error;
+    return;
+  }
+
+  const idNum = typeof listingId === 'string' && !Number.isNaN(Number(listingId)) ? Number(listingId) : listingId;
+  const target = mockListings.find((l) => l.id === idNum || l.id === listingId);
+  if (target) {
+    target.status = 'sold';
+  }
 };
