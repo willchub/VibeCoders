@@ -43,6 +43,10 @@ You don't have to ever use `eject`. The curated feature set is suitable for smal
 
 The app uses **Leaflet** and **OpenStreetMap** for maps. No API key or billing is required. Address search uses Nominatim (free).
 
+## Payments (checkout)
+
+Checkout uses a **card** flow in the booking modal: Luhn validation and optional [BIN lookup](https://lookup.binlist.net) for card type. No real charge. Optional backend (`cd server && npm run dev`) for Stripe; frontend works with the dummy card form without it. Card test number (Luhn-valid): `4242 4242 4242 4242`.
+
 ## Learn More
 
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
