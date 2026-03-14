@@ -1,5 +1,29 @@
-// A mock database of listings. In a real application, this would come from a backend server.
-// Each listing may include location: { lat, lng, address } for map and "near me" search.
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+
+// Map DB row (snake_case) to app shape (camelCase). Build location from lat/lng/address or jsonb.
+const rowToListing = (row) => {
+  let location = null;
+  if (row.lat != null && row.lng != null) {
+    location = { lat: Number(row.lat), lng: Number(row.lng), address: row.address || null };
+  } else if (row.location && typeof row.location === 'object') {
+    location = row.location;
+  }
+  return {
+    id: row.id,
+    title: row.title,
+    seller: row.seller,
+    type: row.type,
+    originalPrice: row.original_price,
+    discountedPrice: row.discounted_price,
+    imageUrl: row.image_url,
+    appointmentTime: row.appointment_time,
+    rating: row.rating ?? 4.5,
+    reviews: row.reviews ?? 0,
+    location,
+  };
+};
+
+// Mock data used when Supabase is not configured
 const mockListings = [
   {
     id: 1,
@@ -55,12 +79,23 @@ const mockListings = [
   },
 ];
 
-// Simulates an API call to get all listings
-export const getListings = () => {
+const DEFAULT_IMAGE =
+  'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop';
+
+/**
+ * Fetch all listings. Uses Supabase when configured, otherwise returns mock data.
+ */
+export const getListings = async () => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(rowToListing);
+  }
   return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([...mockListings]);
-    }, 500); // Simulate network delay
+    setTimeout(() => resolve([...mockListings]), 500);
   });
 };
 
@@ -93,34 +128,44 @@ export const searchListings = (serviceQuery, locationQuery) => {
         (listing) => matchesService(listing, serviceQuery) && matchesLocation(listing, locationQuery)
       );
       resolve([...filtered]);
-    }, 300); // Simulate network delay
-  });
-};
-
-// Simulates saving/updating a store's location (in a real app this would POST/PATCH to backend)
-export const saveStoreLocation = (listingId, location) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const listing = mockListings.find((l) => l.id === listingId);
-      if (listing) {
-        listing.location = { ...location };
-        resolve(listing);
-      } else {
-        reject(new Error('Listing not found'));
-      }
     }, 300);
   });
 };
 
-// Simulates creating a new listing (mutates mock list; new listings appear on next getListings)
-export const createListing = (listing) => {
+/**
+ * Create a listing. Uses Supabase when configured, otherwise mutates mock array.
+ */
+export const createListing = async (listing) => {
+  const appointmentTime = listing.appointmentTime
+    ? new Date(listing.appointmentTime).toISOString()
+    : new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const loc = listing.location;
+    const insertRow = {
+      title: listing.title || 'Untitled',
+      seller: listing.seller || 'My Business',
+      type: listing.type || 'Salon',
+      original_price: Number(listing.originalPrice) || 0,
+      discounted_price: Number(listing.discountedPrice) || 0,
+      image_url: listing.imageUrl || DEFAULT_IMAGE,
+      appointment_time: appointmentTime,
+      rating: 4.5,
+      reviews: 0,
+    };
+    if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+      insertRow.lat = loc.lat;
+      insertRow.lng = loc.lng;
+      insertRow.address = loc.address || null;
+    }
+    const { data, error } = await supabase.from('listings').insert(insertRow).select().single();
+    if (error) throw error;
+    return rowToListing(data);
+  }
+
   return new Promise((resolve) => {
     setTimeout(() => {
       const id = Math.max(0, ...mockListings.map((l) => l.id)) + 1;
-      const now = new Date();
-      const appointmentTime = listing.appointmentTime
-        ? new Date(listing.appointmentTime).toISOString()
-        : now.toISOString();
       const newListing = {
         id,
         title: listing.title || 'Untitled',
@@ -128,7 +173,7 @@ export const createListing = (listing) => {
         type: listing.type || 'Salon',
         originalPrice: Number(listing.originalPrice) || 0,
         discountedPrice: Number(listing.discountedPrice) || 0,
-        imageUrl: listing.imageUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop',
+        imageUrl: listing.imageUrl || DEFAULT_IMAGE,
         appointmentTime,
         rating: 4.5,
         reviews: 0,
@@ -136,6 +181,41 @@ export const createListing = (listing) => {
       };
       mockListings.push(newListing);
       resolve(newListing);
+    }, 300);
+  });
+};
+
+/**
+ * Update a listing's location. Uses Supabase when configured, otherwise mock.
+ */
+export const saveStoreLocation = async (listingId, location) => {
+  if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+    throw new Error('Invalid location');
+  }
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('listings')
+      .update({
+        lat: location.lat,
+        lng: location.lng,
+        address: location.address || null,
+      })
+      .eq('id', listingId)
+      .select()
+      .single();
+    if (error) throw error;
+    return rowToListing(data);
+  }
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const id = typeof listingId === 'string' && !Number.isNaN(Number(listingId)) ? Number(listingId) : listingId;
+      const listing = mockListings.find((l) => l.id === id || l.id === listingId);
+      if (listing) {
+        listing.location = { ...location };
+        resolve(listing);
+      } else {
+        reject(new Error('Listing not found'));
+      }
     }, 300);
   });
 };

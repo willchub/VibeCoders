@@ -1,9 +1,19 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
+  const displayName = user?.user_metadata?.full_name || user?.email || 'Account';
 
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
@@ -24,15 +34,32 @@ const Header = () => {
             <Link to="/seller-dashboard" className="text-sm font-medium hover:text-brand-primary transition-colors">
               For Salons
             </Link>
-            <Link to="/login" className="text-sm font-medium hover:text-brand-primary transition-colors">
-              Sign In
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-medium bg-brand-secondary text-white px-5 py-2 rounded-full hover:bg-opacity-90 transition-all"
-            >
-              Register
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm text-brand-muted" title={user?.email}>
+                  {displayName}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="text-sm font-medium text-brand-muted hover:text-brand-primary transition-colors flex items-center gap-1"
+                >
+                  <LogOut className="h-4 w-4" /> Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-sm font-medium hover:text-brand-primary transition-colors">
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="text-sm font-medium bg-brand-secondary text-white px-5 py-2 rounded-full hover:bg-opacity-90 transition-all"
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
           <div className="md:hidden">
             <Menu className="h-6 w-6 text-brand-secondary cursor-pointer" />

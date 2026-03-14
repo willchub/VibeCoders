@@ -8,6 +8,16 @@ import { getListings, saveStoreLocation, createListing } from '../services/api';
 
 const LISTING_TYPES = ['Barbershop', 'Gym Class', 'Salon', 'Physio'];
 
+// Preset locations for the dropdown when creating a listing
+const PRESET_LOCATIONS = [
+  { id: 'melbourne-cbd', label: 'Melbourne CBD', lat: -37.8136, lng: 144.9631, address: 'Melbourne CBD, VIC' },
+  { id: 'sydney-cbd', label: 'Sydney CBD', lat: -33.8688, lng: 151.2093, address: 'Sydney CBD, NSW' },
+  { id: 'brisbane-cbd', label: 'Brisbane CBD', lat: -27.4698, lng: 153.0251, address: 'Brisbane CBD, QLD' },
+  { id: 'perth-cbd', label: 'Perth CBD', lat: -31.9505, lng: 115.8605, address: 'Perth CBD, WA' },
+  { id: 'adelaide-cbd', label: 'Adelaide CBD', lat: -34.9285, lng: 138.6007, address: 'Adelaide CBD, SA' },
+  { id: 'custom', label: 'Custom (pick on map below)', lat: null, lng: null, address: null },
+];
+
 const SellerDashboardPage = () => {
   const navigate = useNavigate();
   const [listings, setListings] = useState([]);
@@ -25,6 +35,7 @@ const SellerDashboardPage = () => {
     discountedPrice: '',
     imageUrl: '',
     appointmentTime: '',
+    location: null,
   });
 
   useEffect(() => {
@@ -75,8 +86,9 @@ const SellerDashboardPage = () => {
         ...form,
         originalPrice: original,
         discountedPrice: discounted,
+        location: form.location,
       });
-      setSuccess('Listing created. It will appear on the marketplace.');
+      setSuccess('Listing created. It will appear on the marketplace and map.');
       setForm({
         title: '',
         seller: '',
@@ -85,10 +97,12 @@ const SellerDashboardPage = () => {
         discountedPrice: '',
         imageUrl: '',
         appointmentTime: '',
+        location: null,
       });
       getListings().then(setListings);
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      const message = err?.message || err?.error_description || 'Something went wrong. Please try again.';
+      setError(message);
     }
   };
 
@@ -255,6 +269,46 @@ const SellerDashboardPage = () => {
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
               />
             </div>
+            <div>
+              <label htmlFor="listing-location-preset" className="block text-sm font-medium text-brand-secondary mb-1">
+                Location
+              </label>
+              <select
+                id="listing-location-preset"
+                value={PRESET_LOCATIONS.find((p) => p.lat === form.location?.lat && p.lng === form.location?.lng)?.id || (form.location ? 'custom' : '')}
+                onChange={(e) => {
+                  const preset = PRESET_LOCATIONS.find((p) => p.id === e.target.value);
+                  setForm((prev) => ({
+                    ...prev,
+                    location: preset && preset.lat != null ? { lat: preset.lat, lng: preset.lng, address: preset.address } : prev.location,
+                  }));
+                  setError('');
+                  setSuccess('');
+                }}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
+              >
+                <option value="">— Select a location —</option>
+                {PRESET_LOCATIONS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-brand-muted">Optional. Choose a preset or pick on the map below.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-brand-secondary mb-1">Pick exact spot on map</label>
+              <LocationPicker
+                value={form.location}
+                onChange={(loc) => {
+                  setForm((prev) => ({ ...prev, location: loc }));
+                  setError('');
+                  setSuccess('');
+                }}
+                height="320px"
+                placeholder="Search address or click map..."
+              />
+            </div>
             <button
               type="submit"
               className="w-full py-3 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
@@ -279,7 +333,7 @@ const SellerDashboardPage = () => {
             </label>
             <select
               value={selectedId ?? ''}
-              onChange={(e) => setSelectedId(e.target.value ? Number(e.target.value) : null)}
+              onChange={(e) => setSelectedId(e.target.value || null)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
             >
               <option value="">— Select a store —</option>

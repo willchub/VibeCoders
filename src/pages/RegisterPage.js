@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
+import { useAuth } from '../contexts/AuthContext';
+import { signUp } from '../services/auth';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { setSessionFromAuth } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
@@ -26,9 +30,26 @@ const RegisterPage = () => {
       setError('Password must be at least 6 characters.');
       return;
     }
-    // Mock register – in a real app you would call an auth API
-    console.log('Register', { name, email, password });
-    navigate('/marketplace');
+    setLoading(true);
+    try {
+      const { user, session: newSession, error: authError } = await signUp({
+        email: email.trim(),
+        password,
+        name: name.trim(),
+      });
+      if (authError) {
+        setError(authError.message || 'Registration failed.');
+        return;
+      }
+      if (user) {
+        setSessionFromAuth(newSession || { user });
+        navigate('/marketplace');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -104,9 +125,10 @@ const RegisterPage = () => {
             </div>
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-brand-secondary text-white font-semibold hover:bg-brand-secondary/90 transition-colors"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-brand-secondary text-white font-semibold hover:bg-brand-secondary/90 transition-colors disabled:opacity-70"
             >
-              Register
+              {loading ? 'Creating account…' : 'Register'}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-brand-muted">
