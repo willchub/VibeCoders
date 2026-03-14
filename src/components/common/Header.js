@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, isBusiness, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -25,18 +25,54 @@ const Header = () => {
             </Link>
           </div>
           <div className="hidden md:flex space-x-8 items-center">
+            {isBusiness && (
+              <Link
+                to="/"
+                className={`text-sm font-medium transition-colors ${
+                  location.pathname === '/' ? 'text-brand-primary' : 'hover:text-brand-primary'
+                }`}
+              >
+                My business
+              </Link>
+            )}
+            {isAuthenticated && (
+              <Link
+                to="/profile"
+                className={`text-sm font-medium transition-colors ${
+                  location.pathname === '/profile' ? 'text-brand-primary' : 'hover:text-brand-primary'
+                }`}
+              >
+                My profile
+              </Link>
+            )}
             <Link
               to="/marketplace"
-              className={`inline-block text-sm font-medium transition-all duration-200 origin-center hover:scale-105 active:scale-95 hover:[text-shadow:0_2px_6px_rgba(0,0,0,0.12)] active:[text-shadow:0_1px_3px_rgba(0,0,0,0.15)] ${location.pathname === '/marketplace' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}
+              className={`text-sm font-medium transition-colors ${
+                location.pathname === '/marketplace' ? 'text-brand-primary' : 'hover:text-brand-primary'
+              }`}
             >
               Marketplace
             </Link>
-            <Link
-              to="/seller-dashboard"
-              className="inline-block text-sm font-medium hover:text-brand-primary transition-all duration-200 origin-center hover:scale-105 active:scale-95 hover:[text-shadow:0_2px_6px_rgba(0,0,0,0.12)] active:[text-shadow:0_1px_3px_rgba(0,0,0,0.15)]"
-            >
-              For Salons
-            </Link>
+            {isBusiness && (
+              <Link
+                to="/seller-dashboard"
+                className={`text-sm font-medium transition-colors ${
+                  location.pathname === '/seller-dashboard' ? 'text-brand-primary' : 'hover:text-brand-primary'
+                }`}
+              >
+                Create listing
+              </Link>
+            )}
+            {isAuthenticated && !isBusiness && (
+              <Link
+                to="/appointments"
+                className={`text-sm font-medium transition-colors ${
+                  location.pathname === '/appointments' ? 'text-brand-primary' : 'hover:text-brand-primary'
+                }`}
+              >
+                My appointments
+              </Link>
+            )}
             {isAuthenticated ? (
               <>
                 <span className="text-sm text-brand-muted" title={user?.email}>

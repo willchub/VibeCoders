@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,9 @@ import { signIn } from '../services/auth';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setSessionFromAuth } = useAuth();
+  const redirectTo = searchParams.get('redirect') || '/marketplace';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ const LoginPage = () => {
       }
       if (user) {
         setSessionFromAuth(newSession || { user });
-        navigate('/marketplace');
+        navigate(redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`, { replace: true });
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');

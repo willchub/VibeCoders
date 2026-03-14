@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   isValidExpiry,
   isValidCVC,
@@ -13,8 +13,9 @@ import { useAuth } from '../contexts/AuthContext';
 const CARD_TYPE_LABELS = { visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex', discover: 'Discover' };
 
 const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [step, setStep] = useState(1);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState(null);
   const [cardType, setCardType] = useState(null);
@@ -81,6 +82,11 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
 
   const handleProceedToPayment = () => {
     setError(null);
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setShowLoginPrompt(false);
     setStep(2);
   };
 
@@ -139,6 +145,7 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
 
   const handleClose = () => {
     setStep(1);
+    setShowLoginPrompt(false);
     setForm({ cardNumber: '', expiry: '', cvc: '', name: '' });
     setError(null);
     setCardType(null);
@@ -161,40 +168,70 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
 
           {step === 1 && (
             <>
-              <div className="mt-4 space-y-2 text-sm text-brand-muted">
-                <p>
-                  <strong className="text-brand-secondary">Service:</strong> {listing.title}
-                </p>
-                <p>
-                  <strong className="text-brand-secondary">Seller:</strong> {listing.seller}
-                </p>
-                <p>
-                  <strong className="text-brand-secondary">Time:</strong>{' '}
-                  {formatAppointmentTime(listing.appointmentTime)}
-                </p>
-                <p>
-                  <strong className="text-brand-secondary">Price:</strong>{' '}
-                  <span className="text-xl font-bold text-brand-primary">
-                    ${listing.discountedPrice}
-                  </span>
-                </p>
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-5 py-2.5 rounded-lg border border-gray-200 text-brand-secondary font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleProceedToPayment}
-                  className="px-5 py-2.5 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
-                >
-                  Proceed to payment
-                </button>
-              </div>
+              {showLoginPrompt ? (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-sm font-medium text-brand-secondary mb-2">Sign in or register to complete your booking</p>
+                  <p className="text-xs text-brand-muted mb-4">You need an account to pay and view your appointments.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to="/login"
+                      className="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm font-medium hover:bg-brand-primary/90"
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="px-4 py-2 rounded-lg border border-gray-200 text-brand-secondary text-sm font-medium hover:bg-gray-50"
+                    >
+                      Register
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPrompt(false)}
+                      className="px-4 py-2 rounded-lg text-sm text-brand-muted hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-4 space-y-2 text-sm text-brand-muted">
+                    <p>
+                      <strong className="text-brand-secondary">Service:</strong> {listing.title}
+                    </p>
+                    <p>
+                      <strong className="text-brand-secondary">Seller:</strong> {listing.seller}
+                    </p>
+                    <p>
+                      <strong className="text-brand-secondary">Time:</strong>{' '}
+                      {formatAppointmentTime(listing.appointmentTime)}
+                    </p>
+                    <p>
+                      <strong className="text-brand-secondary">Price:</strong>{' '}
+                      <span className="text-xl font-bold text-brand-primary">
+                        ${listing.discountedPrice}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="px-5 py-2.5 rounded-lg border border-gray-200 text-brand-secondary font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleProceedToPayment}
+                      className="px-5 py-2.5 rounded-lg bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
+                    >
+                      Proceed to payment
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           )}
 

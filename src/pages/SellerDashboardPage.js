@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PlusCircle, MapPin } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { PlusCircle, MapPin, Image, Instagram } from 'lucide-react';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import LocationPicker from '../components/map/LocationPicker';
-import { getListings, saveStoreLocation, createListing } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { getMyListings, saveStoreLocation, createListing, getBusinessProfile, updateBusinessProfile } from '../services/api';
 
 const LISTING_TYPES = ['Barbershop', 'Gym Class', 'Salon', 'Physio'];
 
@@ -20,6 +21,7 @@ const PRESET_LOCATIONS = [
 
 const SellerDashboardPage = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, isBusiness } = useAuth();
   const [listings, setListings] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [location, setLocation] = useState(null);
@@ -37,10 +39,25 @@ const SellerDashboardPage = () => {
     appointmentTime: '',
     location: null,
   });
+  const [profileForm, setProfileForm] = useState({ logoUrl: '', instagramUrl: '', photoUrlsText: '' });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
 
   useEffect(() => {
-    getListings().then(setListings);
-  }, []);
+    if (user?.id) getMyListings(user.id).then(setListings);
+    else setListings([]);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    getBusinessProfile(user.id).then((p) => {
+      setProfileForm({
+        logoUrl: p.logoUrl || '',
+        instagramUrl: p.instagramUrl || '',
+        photoUrlsText: (p.photoUrls || []).join('\n'),
+      });
+    });
+  }, [user?.id]);
 
   const selectedListing = listings.find((l) => l.id === selectedId);
 
@@ -81,13 +98,20 @@ const SellerDashboardPage = () => {
       setError('Discounted price should be lower than original price.');
       return;
     }
+    if (!user?.id) {
+      setError('You must be signed in as a business to add listings.');
+      return;
+    }
     try {
-      await createListing({
-        ...form,
-        originalPrice: original,
-        discountedPrice: discounted,
-        location: form.location,
-      });
+      await createListing(
+        {
+          ...form,
+          originalPrice: original,
+          discountedPrice: discounted,
+          location: form.location,
+        },
+        user.id
+      );
       setSuccess('Listing created. It will appear on the marketplace and map.');
       setForm({
         title: '',
@@ -99,10 +123,33 @@ const SellerDashboardPage = () => {
         appointmentTime: '',
         location: null,
       });
-      getListings().then(setListings);
+      getMyListings(user.id).then(setListings);
     } catch (err) {
       const message = err?.message || err?.error_description || 'Something went wrong. Please try again.';
       setError(message);
+    }
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    setProfileSaving(true);
+    setProfileMessage(null);
+    try {
+      const photoUrls = profileForm.photoUrlsText
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      await updateBusinessProfile(user.id, {
+        logoUrl: profileForm.logoUrl.trim() || undefined,
+        instagramUrl: profileForm.instagramUrl.trim() || undefined,
+        photoUrls,
+      });
+      setProfileMessage({ type: 'success', text: 'Store profile saved. Your logo and photos will appear on your business home.' });
+    } catch (err) {
+      setProfileMessage({ type: 'error', text: err.message || 'Failed to save profile.' });
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -126,20 +173,45 @@ const SellerDashboardPage = () => {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="max-w-md mx-auto px-4 py-16 flex-grow flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <h2 className="text-xl font-semibold text-brand-secondary mb-2">Sign in required</h2>
+            <p className="text-brand-muted text-sm mb-6">Only business accounts can add and manage listings. Sign in or register as a business.</p>
+            <div className="flex gap-3 justify-center">
+              <Link to="/login" className="px-5 py-2.5 rounded-xl bg-brand-primary text-white font-medium hover:bg-brand-primary/90">Sign in</Link>
+              <Link to="/register" className="px-5 py-2.5 rounded-xl border border-gray-200 text-brand-secondary font-medium hover:bg-gray-50">Register</Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!isBusiness) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="max-w-md mx-auto px-4 py-16 flex-grow flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+            <h2 className="text-xl font-semibold text-brand-secondary mb-2">Business account required</h2>
+            <p className="text-brand-muted text-sm mb-6">Only business or admin accounts can add listings and see this dashboard. Register as a business to get started.</p>
+            <Link to="/marketplace" className="inline-block px-5 py-2.5 rounded-xl bg-brand-primary text-white font-medium hover:bg-brand-primary/90">Back to marketplace</Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="max-w-2xl mx-auto px-4 py-12 flex-grow w-full">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-sans text-3xl font-semibold text-brand-secondary tracking-tight">Seller dashboard</h1>
-          <button
-            type="button"
-            onClick={() => navigate('/marketplace')}
-            className="text-sm font-medium text-brand-primary hover:underline"
-          >
-            View marketplace
-          </button>
-        </div>
 
         {/* Create listing */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">

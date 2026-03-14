@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { User, Store } from 'lucide-react';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import { useAuth } from '../contexts/AuthContext';
 import { signUp } from '../services/auth';
 
+const ROLE_CUSTOMER = 'customer';
+const ROLE_BUSINESS = 'business';
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { setSessionFromAuth } = useAuth();
+  const [role, setRole] = useState(ROLE_CUSTOMER);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,6 +41,7 @@ const RegisterPage = () => {
         email: email.trim(),
         password,
         name: name.trim(),
+        role,
       });
       if (authError) {
         setError(authError.message || 'Registration failed.');
@@ -43,7 +49,8 @@ const RegisterPage = () => {
       }
       if (user) {
         setSessionFromAuth(newSession || { user });
-        navigate('/marketplace');
+        if (role === ROLE_BUSINESS) navigate('/seller-dashboard');
+        else navigate('/marketplace');
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -59,8 +66,41 @@ const RegisterPage = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <h1 className="font-sans text-2xl font-semibold text-brand-secondary mb-2 tracking-tight">Create an account</h1>
           <p className="font-sans text-brand-muted text-sm mb-6">
-            Register to book last-minute deals and list your own services.
+            Choose how you want to use the marketplace.
           </p>
+
+          <div className="flex rounded-xl border border-gray-200 p-1 mb-6 bg-gray-50">
+            <button
+              type="button"
+              onClick={() => setRole(ROLE_CUSTOMER)}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-colors ${
+                role === ROLE_CUSTOMER
+                  ? 'bg-white text-brand-primary shadow-sm border border-gray-200'
+                  : 'text-brand-muted hover:text-brand-secondary'
+              }`}
+            >
+              <User className="h-4 w-4" />
+              I'm a customer
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole(ROLE_BUSINESS)}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-colors ${
+                role === ROLE_BUSINESS
+                  ? 'bg-white text-brand-primary shadow-sm border border-gray-200'
+                  : 'text-brand-muted hover:text-brand-secondary'
+              }`}
+            >
+              <Store className="h-4 w-4" />
+              I'm a business
+            </button>
+          </div>
+          <p className="text-xs text-brand-muted mb-6">
+            {role === ROLE_BUSINESS
+              ? 'Business accounts can add listings and manage their own appointments. Customers can only book and view their bookings.'
+              : 'Customers can browse deals and book appointments. Sign in to complete purchases and see your bookings.'}
+          </p>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg" role="alert">
@@ -69,7 +109,7 @@ const RegisterPage = () => {
             )}
             <div>
               <label htmlFor="register-name" className="block text-sm font-medium text-brand-secondary mb-1">
-                Full name
+                {role === ROLE_BUSINESS ? 'Business or your name' : 'Full name'}
               </label>
               <input
                 id="register-name"
@@ -77,7 +117,7 @@ const RegisterPage = () => {
                 autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Doe"
+                placeholder={role === ROLE_BUSINESS ? 'e.g. The Dapper Barber' : 'Jane Doe'}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
               />
             </div>
@@ -128,7 +168,7 @@ const RegisterPage = () => {
               disabled={loading}
               className="w-full py-3 rounded-xl bg-brand-secondary text-white font-semibold hover:bg-brand-secondary/90 transition-colors disabled:opacity-70"
             >
-              {loading ? 'Creating account…' : 'Register'}
+              {loading ? 'Creating account…' : role === ROLE_BUSINESS ? 'Register as business' : 'Register as customer'}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-brand-muted">
