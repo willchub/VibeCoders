@@ -36,8 +36,12 @@ const SearchAutocomplete = ({
   ).slice(0, maxSuggestions);
 
   const filtered = isAsync ? asyncSuggestions.slice(0, maxSuggestions) : staticFiltered;
+  const trimmedValue = (value || '').trim();
+  const hasNoResultsMessage =
+    isAsync && !loadingSuggestions && trimmedValue.length >= minChars && filtered.length === 0;
+
   const showDropdown = isOpen
-    && value.trim().length >= minChars
+    && trimmedValue.length >= minChars
     && (isAsync ? (loadingSuggestions || filtered.length > 0) : filtered.length > 0);
 
   useEffect(() => {
@@ -143,25 +147,28 @@ const SearchAutocomplete = ({
                 Loading…
               </li>
             ) : (
-            filtered.map((item, i) => {
-              const label = getLabel(item);
-              return (
-                <li
-                  key={label + i}
-                  role="option"
-                  aria-selected={i === highlightIndex}
-                  className={`px-3 py-2 text-sm cursor-pointer ${
-                    i === highlightIndex ? 'bg-brand-primary/10 text-brand-secondary' : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                  onMouseDown={(e) => { e.preventDefault(); select(item); }}
-                  onMouseEnter={() => setHighlightIndex(i)}
-                >
-                  {label}
-                </li>
-              );
-            })
+              filtered.map((item, i) => {
+                const label = getLabel(item);
+                return (
+                  <li
+                    key={label + i}
+                    role="option"
+                    aria-selected={i === highlightIndex}
+                    className={`px-3 py-2 text-sm cursor-pointer ${
+                      i === highlightIndex ? 'bg-brand-primary/10 text-brand-secondary' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    onMouseDown={(e) => { e.preventDefault(); select(item); }}
+                    onMouseEnter={() => setHighlightIndex(i)}
+                  >
+                    {label}
+                  </li>
+                );
+              })
             )}
           </ul>
+        )}
+        {hasNoResultsMessage && (
+          <p className="mt-1 text-xs text-red-500">Invalid location</p>
         )}
       </div>
     </div>

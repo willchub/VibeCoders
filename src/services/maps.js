@@ -3,8 +3,8 @@
  * Used by map components and "near me" search.
  */
 
-// Default map center (e.g. Melbourne CBD). Used when user location is unavailable.
-export const DEFAULT_CENTER = { lat: -37.8136, lng: 144.9631 };
+// Default map center (Sydney CBD). Used when user location is unavailable or not chosen.
+export const DEFAULT_CENTER = { lat: -33.8688, lng: 151.2093 };
 
 // Haversine formula: distance in km between two lat/lng points
 export function getDistanceKm(lat1, lng1, lat2, lng2) {
