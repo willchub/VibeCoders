@@ -5,9 +5,9 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import './index.css';
+import './assets/styles/main.css';
 
 const HomePage = () => <MarketplacePage />;
-
 
 function App() {
   return (
