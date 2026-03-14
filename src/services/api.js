@@ -64,6 +64,39 @@ export const getListings = () => {
   });
 };
 
+/**
+ * Search listings by service (title, type) and location (address, seller, area).
+ * In a real app this would be a backend GET /api/search?service=...&location=...
+ */
+function matchesService(listing, serviceQuery) {
+  if (!serviceQuery || !serviceQuery.trim()) return true;
+  const q = serviceQuery.trim().toLowerCase();
+  const title = (listing.title || '').toLowerCase();
+  const type = (listing.type || '').toLowerCase();
+  const seller = (listing.seller || '').toLowerCase();
+  return title.includes(q) || type.includes(q) || seller.includes(q);
+}
+
+function matchesLocation(listing, locationQuery) {
+  if (!locationQuery || !locationQuery.trim()) return true;
+  const q = locationQuery.trim().toLowerCase();
+  const address = (listing.location?.address || '').toLowerCase();
+  const seller = (listing.seller || '').toLowerCase();
+  const type = (listing.type || '').toLowerCase();
+  return address.includes(q) || seller.includes(q) || type.includes(q);
+}
+
+export const searchListings = (serviceQuery, locationQuery) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const filtered = mockListings.filter(
+        (listing) => matchesService(listing, serviceQuery) && matchesLocation(listing, locationQuery)
+      );
+      resolve([...filtered]);
+    }, 300); // Simulate network delay
+  });
+};
+
 // Simulates saving/updating a store's location (in a real app this would POST/PATCH to backend)
 export const saveStoreLocation = (listingId, location) => {
   return new Promise((resolve, reject) => {
