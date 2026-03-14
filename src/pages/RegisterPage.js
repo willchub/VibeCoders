@@ -57,8 +57,8 @@ const RegisterPage = () => {
       <Header />
       <main className="max-w-md mx-auto px-4 py-16 flex-grow w-full">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <h1 className="text-2xl font-bold text-brand-secondary mb-2">Create an account</h1>
-          <p className="text-brand-muted text-sm mb-6">
+          <h1 className="font-sans text-2xl font-semibold text-brand-secondary mb-2 tracking-tight">Create an account</h1>
+          <p className="font-sans text-brand-muted text-sm mb-6">
             Register to book last-minute deals and list your own services.
           </p>
           <form onSubmit={handleSubmit} className="space-y-5">

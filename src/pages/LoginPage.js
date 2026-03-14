@@ -43,8 +43,8 @@ const LoginPage = () => {
       <Header />
       <main className="max-w-md mx-auto px-4 py-16 flex-grow w-full">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <h1 className="text-2xl font-bold text-brand-secondary mb-2">Sign in</h1>
-          <p className="text-brand-muted text-sm mb-6">
+          <h1 className="font-sans text-2xl font-semibold text-brand-secondary mb-2 tracking-tight">Sign in</h1>
+          <p className="font-sans text-brand-muted text-sm mb-6">
             Welcome back. Sign in to book deals and manage your account.
           </p>
           <form onSubmit={handleSubmit} className="space-y-5">

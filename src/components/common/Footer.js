@@ -7,10 +7,10 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-1">
-            <span className="text-2xl font-bold tracking-tighter text-brand-secondary">
+            <span className="font-sans text-2xl font-semibold tracking-tight text-brand-secondary">
               LA<span className="text-brand-primary">st</span> Minute
             </span>
-            <p className="mt-4 text-brand-muted text-sm leading-relaxed">
+            <p className="font-sans mt-4 text-brand-muted text-sm leading-relaxed">
               The #1 marketplace for spontaneous beauty bookings. Premium services at discounted rates, just for waiting.
             </p>
           </div>
@@ -37,7 +37,7 @@ const Footer = () => {
 
           <div>
             <h4 className="font-bold text-brand-secondary mb-4 uppercase text-xs tracking-widest">Newsletter</h4>
-            <p className="text-sm text-brand-muted mb-4">Get first access to exclusive daily deals.</p>
+            <p className="font-sans text-sm text-brand-muted mb-4">Get first access to exclusive daily deals.</p>
             <div className="flex gap-2">
               <input
                 type="email"

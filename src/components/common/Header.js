@@ -20,7 +20,7 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="text-2xl font-bold tracking-tighter text-brand-secondary">
+            <Link to="/" className="font-sans text-2xl font-semibold tracking-tight text-brand-secondary">
               LA<span className="text-brand-primary">st</span> Minute
             </Link>
           </div>

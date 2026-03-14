@@ -131,7 +131,7 @@ const SellerDashboardPage = () => {
       <Header />
       <main className="max-w-2xl mx-auto px-4 py-12 flex-grow w-full">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-brand-secondary">Seller dashboard</h1>
+          <h1 className="font-sans text-3xl font-semibold text-brand-secondary tracking-tight">Seller dashboard</h1>
           <button
             type="button"
             onClick={() => navigate('/marketplace')}
@@ -143,11 +143,11 @@ const SellerDashboardPage = () => {
 
         {/* Create listing */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
-          <h2 className="text-lg font-bold text-brand-secondary mb-1 flex items-center gap-2">
+          <h2 className="font-sans text-lg font-semibold text-brand-secondary mb-1 flex items-center gap-2">
             <PlusCircle className="h-5 w-5 text-brand-primary" />
             Create a listing
           </h2>
-          <p className="text-brand-muted text-sm mb-6">
+          <p className="font-sans text-brand-muted text-sm mb-6">
             Fill in the details below to post a last-minute deal. It will appear on the marketplace.
           </p>
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -320,11 +320,11 @@ const SellerDashboardPage = () => {
 
         {/* Set store location */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <h2 className="text-lg font-bold text-brand-secondary mb-1 flex items-center gap-2">
+          <h2 className="font-sans text-lg font-semibold text-brand-secondary mb-1 flex items-center gap-2">
             <MapPin className="h-5 w-5 text-brand-primary" />
             Set store location
           </h2>
-          <p className="text-brand-muted text-sm mb-6">
+          <p className="font-sans text-brand-muted text-sm mb-6">
             Choose an existing listing and set its location so users can find you on the map.
           </p>
           <div className="space-y-4">

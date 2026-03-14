@@ -8,14 +8,18 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          primary: "#F97B7B",
-          secondary: "#1A1A1A",
-          accent: "#FFF5F5",
-          muted: "#71717A",
+          // Coral blush palette (Color Palette 07)
+          primary: "#E9967A",    // salmon / coral
+          secondary: "#4A3728",  // chocolate - headings & dark text
+          accent: "#FFF0ED",     // ivory blush - page background (warmer tint)
+          muted: "#8B7355",      // clay - secondary text
+          blush: "#F4C2C2",      // blush pink - soft accents
+          ivory: "#FFFFF0",      // ivory
         },
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Plus Jakarta Sans", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

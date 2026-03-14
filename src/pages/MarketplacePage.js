@@ -75,10 +75,10 @@ const MarketplacePage = () => {
           transition={{ duration: 0.6 }}
           className="relative z-10 text-center px-4 max-w-3xl"
         >
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+          <h1 className="font-sans text-4xl md:text-6xl font-semibold text-white mb-6 leading-tight tracking-tight">
             Look Great, For Less.
           </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-8 font-light">
+          <p className="font-sans text-lg md:text-xl text-white/90 mb-8 font-light">
             Grab last-minute beauty deals near you and save up to 50%.
           </p>
           <div className="bg-white p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row gap-2 max-w-2xl mx-auto">
@@ -134,8 +134,8 @@ const MarketplacePage = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow">
         <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-brand-secondary">Live Deals Near You</h2>
-            <p className="text-brand-muted mt-2">Book within the next 2 hours for maximum savings.</p>
+            <h2 className="font-sans text-3xl font-semibold text-brand-secondary tracking-tight">Live Deals Near You</h2>
+            <p className="font-sans text-brand-muted mt-2">Book within the next 2 hours for maximum savings.</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex rounded-full border border-gray-200 overflow-hidden">
