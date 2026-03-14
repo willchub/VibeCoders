@@ -27,14 +27,11 @@ const Header = () => {
           <div className="hidden md:flex space-x-8 items-center">
             <Link
               to="/marketplace"
-              className={`inline-block text-sm font-medium transition-all duration-200 origin-center hover:scale-105 active:scale-95 hover:[text-shadow:0_2px_6px_rgba(0,0,0,0.12)] active:[text-shadow:0_1px_3px_rgba(0,0,0,0.15)] ${location.pathname === '/marketplace' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}
+              className={`text-sm font-medium transition-colors ${location.pathname === '/marketplace' ? 'text-brand-primary' : 'hover:text-brand-primary'}`}
             >
               Marketplace
             </Link>
-            <Link
-              to="/seller-dashboard"
-              className="inline-block text-sm font-medium hover:text-brand-primary transition-all duration-200 origin-center hover:scale-105 active:scale-95 hover:[text-shadow:0_2px_6px_rgba(0,0,0,0.12)] active:[text-shadow:0_1px_3px_rgba(0,0,0,0.15)]"
-            >
+            <Link to="/seller-dashboard" className="text-sm font-medium hover:text-brand-primary transition-colors">
               For Salons
             </Link>
             {isAuthenticated ? (
@@ -45,22 +42,19 @@ const Header = () => {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-brand-muted hover:text-brand-primary transition-all duration-200 origin-center hover:scale-105 active:scale-95 hover:[text-shadow:0_2px_6px_rgba(0,0,0,0.12)] active:[text-shadow:0_1px_3px_rgba(0,0,0,0.15)]"
+                  className="text-sm font-medium text-brand-muted hover:text-brand-primary transition-colors flex items-center gap-1"
                 >
                   <LogOut className="h-4 w-4" /> Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link
-                  to="/login"
-                  className="inline-block text-sm font-medium hover:text-brand-primary transition-all duration-200 origin-center hover:scale-105 active:scale-95 hover:[text-shadow:0_2px_6px_rgba(0,0,0,0.12)] active:[text-shadow:0_1px_3px_rgba(0,0,0,0.15)]"
-                >
+                <Link to="/login" className="text-sm font-medium hover:text-brand-primary transition-colors">
                   Sign In
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-block text-sm font-medium bg-brand-secondary text-white px-5 py-2 rounded-full hover:bg-opacity-90 transition-all duration-200 origin-center hover:scale-105 active:scale-95 hover:[text-shadow:0_2px_4px_rgba(0,0,0,0.2)] active:[text-shadow:0_1px_2px_rgba(0,0,0,0.25)]"
+                  className="text-sm font-medium bg-brand-secondary text-white px-5 py-2 rounded-full hover:bg-opacity-90 transition-all"
                 >
                   Register
                 </Link>
