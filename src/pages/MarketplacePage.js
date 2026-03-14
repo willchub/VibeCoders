@@ -162,13 +162,15 @@ const MarketplacePage = () => {
                 maxSuggestions={8}
               />
             </div>
-            <button
+            <motion.button
               type="submit"
               disabled={searchLoading}
-              className="bg-brand-primary text-white px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-opacity-90 transition-all disabled:opacity-70"
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.1 }}
+              className="bg-brand-primary text-white px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-opacity-90 transition-all disabled:opacity-70 shadow-md hover:shadow-lg"
             >
               {searchLoading ? 'Searching…' : 'Search'}
-            </button>
+            </motion.button>
           </form>
         </motion.div>
       </header>
@@ -178,18 +180,20 @@ const MarketplacePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-4 justify-start md:justify-center">
             {CATEGORIES.map((cat) => (
-              <button
+              <motion.button
                 key={cat}
                 type="button"
                 onClick={() => setActiveCategory(cat)}
-                className={`whitespace-nowrap px-6 py-2 rounded-full border text-sm font-medium transition-all ${
+                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className={`whitespace-nowrap px-6 py-2.5 rounded-full border text-sm font-medium transition-all duration-200 shadow-sm ${
                   activeCategory === cat
-                    ? 'border-brand-secondary bg-brand-secondary text-white'
-                    : 'border-gray-200 hover:border-brand-primary hover:text-brand-primary'
+                    ? 'border-brand-secondary bg-brand-secondary text-white shadow-md'
+                    : 'border-gray-200 bg-white hover:border-brand-primary hover:text-brand-primary hover:shadow-md hover:-translate-y-0.5'
                 }`}
               >
                 {cat}
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -219,31 +223,35 @@ const MarketplacePage = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex rounded-full border border-gray-200 overflow-hidden">
-              <button
+            <div className="flex rounded-full border border-gray-200 overflow-hidden shadow-sm">
+              <motion.button
                 type="button"
                 onClick={() => setViewMode(VIEW_LIST)}
-                className={`px-5 py-2 text-sm font-medium ${
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.1 }}
+                className={`px-5 py-2 text-sm font-medium transition-all ${
                   viewMode === VIEW_LIST
-                    ? 'bg-brand-secondary text-white'
+                    ? 'bg-brand-secondary text-white shadow-inner'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 List
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={() => setViewMode(VIEW_MAP)}
-                className={`px-5 py-2 text-sm font-medium ${
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.1 }}
+                className={`px-5 py-2 text-sm font-medium transition-all ${
                   viewMode === VIEW_MAP
-                    ? 'bg-brand-secondary text-white'
+                    ? 'bg-brand-secondary text-white shadow-inner'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 Map / Near me
-              </button>
+              </motion.button>
             </div>
-            <select className="hidden sm:block rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary px-4 py-2 outline-none">
+            <select className="hidden sm:block rounded-full border border-gray-200 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary px-4 py-2 outline-none shadow-sm hover:shadow transition-shadow">
               <option>Recommended</option>
               <option>Price: Low to High</option>
               <option>Highest Discount</option>
@@ -276,12 +284,15 @@ const MarketplacePage = () => {
             )}
 
             <div className="mt-16 text-center">
-              <button
+              <motion.button
                 type="button"
-                className="px-10 py-4 bg-white border border-gray-200 rounded-full font-semibold hover:bg-brand-secondary hover:text-white transition-all"
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ y: -2 }}
+                transition={{ duration: 0.15 }}
+                className="px-10 py-4 bg-white border border-gray-200 rounded-full font-semibold hover:bg-brand-secondary hover:text-white transition-colors shadow-sm hover:shadow-md"
               >
                 View All Local Deals
-              </button>
+              </motion.button>
             </div>
           </>
         )}

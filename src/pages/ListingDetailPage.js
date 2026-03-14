@@ -196,22 +196,28 @@ const ListingDetailPage = () => {
           </div>
 
           <div className="flex flex-wrap gap-3 mt-8">
-            <button
+            <motion.button
               type="button"
               onClick={handleBook}
-              className="px-8 py-3 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors font-sans"
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.15 }}
+              className="px-8 py-3 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors font-sans shadow-md hover:shadow-lg"
             >
               Book now
-            </button>
+            </motion.button>
             {listing.instagramUrl && (
-              <a
+              <motion.a
                 href={listing.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-brand-secondary font-medium hover:border-brand-primary hover:text-brand-primary transition-colors font-sans"
+                whileTap={{ scale: 0.97 }}
+                whileHover={{ y: -2 }}
+                transition={{ duration: 0.15 }}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-brand-secondary font-medium hover:border-brand-primary hover:text-brand-primary transition-colors font-sans shadow-sm hover:shadow-md"
               >
                 <Instagram className="w-5 h-5" /> Instagram
-              </a>
+              </motion.a>
             )}
           </div>
         </div>
