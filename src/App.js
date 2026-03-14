@@ -2,20 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MarketplacePage from './pages/MarketplacePage';
 import LoginPage from './pages/LoginPage';
-import ListingForm from './components/seller/ListingForm';
-import './assets/styles/main.css';
+import RegisterPage from './pages/RegisterPage';
+import SellerDashboardPage from './pages/SellerDashboardPage';
+import './index.css';
 
-// Placeholder components for other pages
-const HomePage = () => <MarketplacePage />; // For now, home is the marketplace
-const RegisterPage = () => <div style={{textAlign: 'center', padding: '50px', fontSize: '2rem'}}>Register Page</div>;
-const SellerDashboardPage = () => (
-  <div className="container">
-    <h1>Seller Dashboard</h1>
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <ListingForm />
-    </div>
-  </div>
-);
+const HomePage = () => <MarketplacePage />;
 
 
 function App() {
