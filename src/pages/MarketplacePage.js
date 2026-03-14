@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import Header from '../components/common/Header';
@@ -6,7 +6,9 @@ import Footer from '../components/common/Footer';
 import ListingCard from '../components/marketplace/ListingCard';
 import StoresMapView from '../components/map/StoresMapView';
 import BookingModal from './BookingModal';
-import { getListings } from '../services/api';
+import SearchAutocomplete from '../components/common/SearchAutocomplete';
+import { getListings, searchListings } from '../services/api';
+import { searchAddressSuggestions } from '../services/geocode';
 
 const CATEGORIES = ['All Services', 'Barbershop', 'Gym Class', 'Salon', 'Physio'];
 const VIEW_LIST = 'list';
@@ -15,11 +17,16 @@ const VIEW_MAP = 'map';
 const MarketplacePage = () => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchService, setSearchService] = useState('');
+  const [searchLocation, setSearchLocation] = useState('');
   const [listingsError, setListingsError] = useState(null);
   const [activeCategory, setActiveCategory] = useState('All Services');
   const [viewMode, setViewMode] = useState(VIEW_LIST);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
+  const resultsSectionRef = useRef(null);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -37,10 +44,39 @@ const MarketplacePage = () => {
     fetchListings();
   }, []);
 
+  const handleSearch = useCallback(async () => {
+    setSearchLoading(true);
+    setSearchResults(null);
+    try {
+      const results = await searchListings(searchService, searchLocation);
+      setSearchResults(results);
+      resultsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+      console.error('Search failed:', error);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [searchService, searchLocation]);
+
+  const baseList = searchResults !== null ? searchResults : listings;
   const filteredListings =
     activeCategory === 'All Services'
-      ? listings
-      : listings.filter((listing) => listing.type === activeCategory);
+      ? baseList
+      : baseList.filter((listing) => listing.type === activeCategory);
+
+  // Autocomplete suggestions from listings
+  const serviceSuggestions = useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    listings.forEach((l) => {
+      [l.title, l.type, l.seller].forEach((s) => {
+        if (s && !seen.has(s)) { seen.add(s); out.push(s); }
+      });
+    });
+    return out;
+  }, [listings]);
+
 
   const handleBookClick = (listing) => {
     setSelectedListing(listing);
@@ -62,7 +98,7 @@ const MarketplacePage = () => {
       <Header />
 
       {/* Hero Section */}
-      <header className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+      <header className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-visible">
         <img
           src="https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=2940&auto=format&fit=crop"
           alt="Modern salon interior"
@@ -81,30 +117,46 @@ const MarketplacePage = () => {
           <p className="font-sans text-lg md:text-xl text-white/90 mb-8 font-light">
             Grab last-minute beauty deals near you and save up to 50%.
           </p>
-          <div className="bg-white p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row gap-2 max-w-2xl mx-auto">
-            <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-gray-100">
-              <Search className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
-              <input
-                type="text"
+          <form
+            className="bg-white p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row gap-2 max-w-2xl mx-auto relative"
+            onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+          >
+            <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-gray-100 min-w-0">
+              <SearchAutocomplete
+                id="service"
+                value={searchService}
+                onChange={setSearchService}
+                suggestions={serviceSuggestions}
                 placeholder="Service (e.g. Balayage)"
-                className="w-full border-none focus:ring-0 text-sm outline-none"
+                icon={Search}
+                onSubmit={handleSearch}
+                aria-label="Service search"
+                minChars={1}
+                maxSuggestions={8}
               />
             </div>
-            <div className="flex-1 flex items-center px-4 py-2">
-              <MapPin className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Los Angeles, CA"
-                className="w-full border-none focus:ring-0 text-sm outline-none"
+            <div className="flex-1 flex items-center px-4 py-2 min-w-0">
+              <SearchAutocomplete
+                id="location"
+                value={searchLocation}
+                onChange={setSearchLocation}
+                fetchSuggestions={searchAddressSuggestions}
+                placeholder="Location (e.g. Melbourne, Los Angeles)"
+                icon={MapPin}
+                onSubmit={handleSearch}
+                aria-label="Location search"
+                minChars={2}
+                maxSuggestions={8}
               />
             </div>
             <button
-              type="button"
-              className="bg-brand-primary text-white px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-opacity-90 transition-all"
+              type="submit"
+              disabled={searchLoading}
+              className="bg-brand-primary text-white px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-opacity-90 transition-all disabled:opacity-70"
             >
-              Search
+              {searchLoading ? 'Searching…' : 'Search'}
             </button>
-          </div>
+          </form>
         </motion.div>
       </header>
 
@@ -131,11 +183,27 @@ const MarketplacePage = () => {
       </section>
 
       {/* Marketplace: List vs Map */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow">
+      <main ref={resultsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow">
         <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
           <div>
             <h2 className="font-sans text-3xl font-semibold text-brand-secondary tracking-tight">Live Deals Near You</h2>
-            <p className="font-sans text-brand-muted mt-2">Book within the next 2 hours for maximum savings.</p>
+            <p className="font-sans text-brand-muted mt-2">
+              {searchResults !== null ? (
+                <>
+                  Showing {filteredListings.length} result{filteredListings.length !== 1 ? 's' : ''} for your search.
+                  {' '}
+                  <button
+                    type="button"
+                    onClick={() => { setSearchResults(null); setSearchService(''); setSearchLocation(''); }}
+                    className="text-brand-primary font-medium hover:underline"
+                  >
+                    Clear search
+                  </button>
+                </>
+              ) : (
+                'Book within the next 2 hours for maximum savings.'
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex rounded-full border border-gray-200 overflow-hidden">
