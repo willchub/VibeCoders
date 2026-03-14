@@ -39,9 +39,34 @@ Instead, it will copy all the configuration files and the transitive dependencie
 
 You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
+<<<<<<< Updated upstream
 ### Maps (store locations & "near me" search)
 
 The app uses **Leaflet** and **OpenStreetMap** for maps. No API key or billing is required. Address search uses Nominatim (free).
+=======
+## Payments (checkout)
+
+Checkout offers **Card**, **PayPal**, and **Apple Pay** in the booking modal.
+
+- **Card**: Validated with Luhn and optional [BIN lookup](https://lookup.binlist.net) (card scheme/type). No real charge.
+- **PayPal**: Uses PayPal Checkout (create order + capture). Requires PayPal credentials in server and `REACT_APP_PAYPAL_CLIENT_ID` in the frontend.
+- **Apple Pay**: Button shown for all users; on supported devices (Safari + Apple Pay) it completes the demo flow. No merchant validation in this demo.
+
+### Setup
+
+1. **Backend** (for PayPal; optional for card-only):
+   ```bash
+   cd server
+   cp .env.example .env
+   ```
+   In `server/.env`: **Stripe** (optional) `STRIPE_SECRET_KEY=sk_test_...`; **PayPal** `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` from [PayPal Developer](https://developer.paypal.com/dashboard/).
+
+2. **Frontend**  
+   In project root `.env` (optional): `REACT_APP_API_URL`, `REACT_APP_PAYPAL_CLIENT_ID` (same as server; enables PayPal button).
+
+3. **Run**  
+   `cd server && npm run dev` then `npm start`. Card test number (Luhn-valid): `4242 4242 4242 4242`.
+>>>>>>> Stashed changes
 
 ## Learn More
 

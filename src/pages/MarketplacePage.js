@@ -50,7 +50,7 @@ const MarketplacePage = () => {
   };
 
   const handleConfirmBooking = () => {
-    alert(`Booking confirmed for ${selectedListing.title}!`);
+    // Modal now redirects to Stripe; close is handled after session is created
     handleCloseModal();
   };
 
