@@ -54,13 +54,19 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const role = user?.user_metadata?.role || user?.app_metadata?.role || 'customer';
+  const isBusiness = role === 'business';
+
   const value = {
     user,
     session,
     loading,
     isAuthenticated: !!user,
+    role,
+    isBusiness,
     signOut,
     setSessionFromAuth,
+    setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
