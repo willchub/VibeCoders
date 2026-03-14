@@ -6,13 +6,19 @@ import { sortListingsByDistance, DEFAULT_CENTER } from '../../services/maps';
 import { getDistanceKm } from '../../services/maps';
 
 /**
- * Map + list of stores. "Near me" uses browser geolocation and sorts by distance.
+ * Map + list of stores. Default center is user's current location; "Near me" re-fetches and sorts by distance.
  */
 const StoresMapView = ({ listings, onBook }) => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [selectedListingId, setSelectedListingId] = useState(null);
   const [mapStyle, setMapStyle] = useState('carto-light');
+
+  useEffect(() => {
+    getUserPosition()
+      .then((pos) => setUserLocation(pos))
+      .catch(() => {});
+  }, []);
 
   const listingsWithLocation = useMemo(
     () => listings.filter((l) => l.location && typeof l.location.lat === 'number'),
