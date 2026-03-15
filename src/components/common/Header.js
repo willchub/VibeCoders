@@ -52,7 +52,13 @@ const Header = ({ variant = 'light' }) => {
                 dark ? 'text-white' : warm ? 'text-brand-secondary' : 'text-brand-secondary'
               }`}
             >
-              LA<span className="text-brand-primary">st</span> Minute
+              <span
+                className={`bg-clip-text text-transparent bg-gradient-to-r ${
+                  dark ? 'from-white to-brand-primary' : 'from-zinc-900 to-brand-primary'
+                }`}
+              >
+                Last Minute
+              </span>
             </Link>
           </div>
           <div className="hidden md:flex space-x-8 items-center">
