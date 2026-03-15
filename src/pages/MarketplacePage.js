@@ -11,7 +11,7 @@ import StoresMapView from '../components/map/StoresMapView';
 import BookingModal from './BookingModal';
 import SearchAutocomplete from '../components/common/SearchAutocomplete';
 import { useAuth } from '../contexts/AuthContext';
-import { getListings, searchListings } from '../services/api';
+import { getListings, searchListings, getBusinessProfile } from '../services/api';
 import { searchAddressSuggestions } from '../services/geocode';
 
 const CATEGORIES = ['All Services', 'Barbershop', 'Gym Class', 'Salon', 'Physio'];
@@ -23,6 +23,7 @@ const MarketplacePage = () => {
   const navigate = useNavigate();
   const { isBusiness } = useAuth();
   const [listings, setListings] = useState([]);
+  const [sellerProfiles, setSellerProfiles] = useState({}); // sellerId -> { logoUrl, instagramUrl }
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -41,6 +42,20 @@ const MarketplacePage = () => {
       try {
         const data = await getListings();
         setListings(data);
+        // Fetch business profiles for unique sellers (logo + Instagram for cards)
+        const sellerIds = [...new Set(data.map((l) => l.sellerId).filter(Boolean))];
+        const profiles = {};
+        await Promise.all(
+          sellerIds.map(async (id) => {
+            try {
+              const p = await getBusinessProfile(id);
+              profiles[id] = p;
+            } catch (_) {
+              profiles[id] = { logoUrl: '', instagramUrl: '', photoUrls: [] };
+            }
+          })
+        );
+        setSellerProfiles(profiles);
       } catch (error) {
         console.error('Failed to fetch listings:', error);
         setListingsError(error?.message || 'Failed to load listings.');
@@ -50,6 +65,36 @@ const MarketplacePage = () => {
     };
     fetchListings();
   }, []);
+
+  // When showing search results, fetch seller profiles for any sellers we don't have yet
+  useEffect(() => {
+    if (!searchResults?.length) return;
+    const missingIds = [...new Set(searchResults.map((l) => l.sellerId).filter(Boolean))].filter(
+      (id) => !sellerProfiles[id]
+    );
+    if (missingIds.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      missingIds.map(async (id) => {
+        try {
+          const p = await getBusinessProfile(id);
+          return { id, ...p };
+        } catch (_) {
+          return { id, logoUrl: '', instagramUrl: '', photoUrls: [] };
+        }
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      setSellerProfiles((prev) => {
+        const next = { ...prev };
+        results.forEach(({ id, logoUrl, instagramUrl }) => {
+          next[id] = { logoUrl, instagramUrl, photoUrls: [] };
+        });
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [searchResults]);
 
   // Open booking modal when navigating from detail page with "Book now" (only for customers)
   useEffect(() => {
@@ -265,7 +310,11 @@ const MarketplacePage = () => {
                   Map / Near me
                 </motion.button>
               </div>
-              <select className="hidden sm:block rounded-full border border-gray-300 bg-gray-50 text-zinc-900 text-sm focus:ring-2 focus:ring-brand-primary/30 px-4 py-2 outline-none">
+              <select
+                className="hidden sm:block font-sans text-sm font-medium text-zinc-900 bg-white border border-gray-200 rounded-full pl-4 pr-10 py-2.5 outline-none cursor-pointer shadow-inner hover:border-gray-300 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition-colors appearance-none bg-[length:1.25rem] bg-[right_0.5rem_center] bg-no-repeat"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2371737a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")" }}
+                aria-label="Sort by"
+              >
                 <option>Recommended</option>
                 <option>Price: Low to High</option>
                 <option>Highest Discount</option>
@@ -286,14 +335,19 @@ const MarketplacePage = () => {
               <p className="text-zinc-500 text-center py-12">Loading listings...</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {filteredListings.map((listing, idx) => (
-                  <ListingCard
-                    key={listing.id}
-                    listing={listing}
-                    index={idx}
-                    onBook={handleBookClick}
-                  />
-                ))}
+                {filteredListings.map((listing, idx) => {
+                  const profile = listing.sellerId ? sellerProfiles[listing.sellerId] : null;
+                  return (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      index={idx}
+                      onBook={handleBookClick}
+                      businessLogoUrl={profile?.logoUrl || undefined}
+                      instagramUrl={profile?.instagramUrl || undefined}
+                    />
+                  );
+                })}
               </div>
             )}
 

@@ -12,6 +12,7 @@ import AppointmentsPage from './pages/AppointmentsPage';
 import BookingsCalendarPage from './pages/BookingsCalendarPage';
 import BusinessSettingsPage from './pages/BusinessSettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import FavouritesPage from './pages/FavouritesPage';
 import './index.css';
 import './assets/styles/main.css';
 
@@ -27,6 +28,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/seller-dashboard" element={<SellerDashboardPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/favourites" element={<FavouritesPage />} />
           <Route path="/business-settings" element={<BusinessSettingsPage />} />
           <Route path="/checkout-success" element={<CheckoutSuccessPage />} />
           <Route path="/checkout-cancel" element={<CheckoutCancelPage />} />

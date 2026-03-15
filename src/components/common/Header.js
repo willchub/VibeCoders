@@ -69,9 +69,14 @@ const Header = ({ variant = 'light' }) => {
               </Link>
             )}
             {isAuthenticated && !isBusiness && (
-              <Link to="/appointments" className={linkClass('/appointments', location.pathname, variant)}>
-                My appointments
-              </Link>
+              <>
+                <Link to="/favourites" className={linkClass('/favourites', location.pathname, variant)}>
+                  Favourites
+                </Link>
+                <Link to="/appointments" className={linkClass('/appointments', location.pathname, variant)}>
+                  My appointments
+                </Link>
+              </>
             )}
             {isAuthenticated ? (
               <>
