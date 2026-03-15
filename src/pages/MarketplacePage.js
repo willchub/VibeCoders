@@ -195,7 +195,7 @@ const MarketplacePage = () => {
 
       <MarketplaceHero stats={heroStats} loading={loading}>
         <form
-          className="bg-white backdrop-blur-sm p-2 rounded-2xl md:rounded-full shadow-xl flex flex-col md:flex-row gap-2 max-w-2xl border border-gray-200"
+          className="bg-transparent p-0 rounded-2xl md:rounded-full flex flex-col md:flex-row gap-2 w-full min-w-0"
           onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
         >
           <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-gray-200 min-w-0">
@@ -231,7 +231,7 @@ const MarketplacePage = () => {
             disabled={searchLoading}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.1 }}
-            className="bg-white text-zinc-900 px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-zinc-100 transition-all disabled:opacity-70 shadow-md hover:shadow-lg border border-gray-200"
+            className="bg-brand-primary text-white px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-brand-primary/90 transition-all disabled:opacity-70 shadow-md hover:shadow-lg border border-brand-primary/80"
           >
             {searchLoading ? 'Searching…' : 'Search'}
           </motion.button>

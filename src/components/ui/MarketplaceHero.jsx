@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, Sparkles, Scissors, Heart, Gem, CircleDot } from 'lucide-react';
 import VideoBackground from './VideoBackground';
 import GradualBlur from './GradualBlur';
+import { GlassEffect, GlassFilter } from './liquid-glass';
 
 const StatItem = ({ value, label }) => (
   <div className="flex flex-col items-center justify-center transition-transform hover:-translate-y-1 cursor-default">
@@ -48,6 +49,7 @@ export default function MarketplaceHero({ children, stats, loading }) {
 
   return (
     <div className="relative w-full bg-white text-zinc-900 overflow-hidden font-sans">
+      <GlassFilter />
       <style>{`
         @keyframes fadeSlideIn {
           from { opacity: 0; transform: translateY(20px); }
@@ -102,15 +104,14 @@ export default function MarketplaceHero({ children, stats, loading }) {
               Grab last-minute beauty deals near you and save up to 50%.
             </p>
 
-            <div className="animate-fade-in delay-400">
+            <GlassEffect className="animate-fade-in delay-400 rounded-2xl md:rounded-full p-2 max-w-2xl border border-gray-200/80 w-full">
               {children}
-            </div>
+            </GlassEffect>
           </div>
 
           {/* Right column: stats card + marquee */}
           <div className="lg:col-span-5 space-y-6 lg:mt-12">
-            <div className="animate-fade-in delay-500 relative overflow-hidden rounded-3xl border border-gray-200 bg-white/95 p-8 backdrop-blur-xl shadow-xl">
-              <div className="absolute top-0 right-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-gray-100 blur-3xl pointer-events-none" />
+            <GlassEffect className="animate-fade-in delay-500 rounded-3xl p-8 border border-gray-200/80">
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 ring-1 ring-gray-200">
@@ -147,9 +148,10 @@ export default function MarketplaceHero({ children, stats, loading }) {
                   <StatItem value={loading ? '—' : String(availableSlots)} label="Slots" />
                 </div>
               </div>
-            </div>
+            </GlassEffect>
 
-            <div className="animate-fade-in delay-500 relative overflow-hidden rounded-3xl border border-gray-200 bg-white/95 py-8 backdrop-blur-xl shadow-xl">
+            <GlassEffect className="animate-fade-in delay-500 rounded-3xl py-8 border border-gray-200/80">
+              <div className="w-full">
               <h3 className="mb-6 px-8 text-sm font-medium text-zinc-500">
                 {marqueeItems === FALLBACK_PARTNERS ? 'Trusted by local salons & studios' : 'Companies with available bookings'}
               </h3>
@@ -175,7 +177,8 @@ export default function MarketplaceHero({ children, stats, loading }) {
                   })}
                 </div>
               </div>
-            </div>
+              </div>
+            </GlassEffect>
           </div>
         </div>
       </div>
