@@ -53,6 +53,14 @@ const Header = () => {
             >
               Marketplace
             </Link>
+            <Link
+              to="/bookings-calendar"
+              className={`text-sm font-medium transition-colors ${
+                location.pathname === '/bookings-calendar' ? 'text-brand-primary' : 'hover:text-brand-primary'
+              }`}
+            >
+              Calendar
+            </Link>
             {isBusiness && (
               <Link
                 to="/seller-dashboard"
