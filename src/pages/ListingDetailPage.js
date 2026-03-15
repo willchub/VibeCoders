@@ -201,23 +201,8 @@ const ListingDetailPage = () => {
           <span className="text-zinc-600 font-sans text-sm">Available {formatTime(listing.appointmentTime)}</span>
         </div>
 
-        <div className="flex flex-wrap gap-3 mt-8">
-          {isBusiness ? (
-            <p className="text-zinc-600 text-sm font-medium py-2">
-              Business accounts can only view listings. Sign in as a customer to book.
-            </p>
-          ) : (
-            <motion.button
-              type="button"
-              onClick={handleBook}
-              whileTap={{ scale: 0.97 }}
-              whileHover={{ y: -2 }}
-              transition={{ duration: 0.15 }}
-              className="px-8 py-3 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors font-sans shadow-md hover:shadow-lg"
-            >
-              Book now
-            </motion.button>
-          )}
+        {/* Standard order: Instagram → primary action (Book / message) */}
+        <div className="flex flex-wrap gap-3 mt-8 items-center">
           {(businessProfile.instagramUrl || listing.instagramUrl) && (
             <motion.a
               href={
@@ -236,6 +221,22 @@ const ListingDetailPage = () => {
             >
               <Instagram className="w-5 h-5" /> Instagram
             </motion.a>
+          )}
+          {isBusiness ? (
+            <p className="text-zinc-600 text-sm font-medium py-2">
+              Business accounts can only view listings. Sign in as a customer to book.
+            </p>
+          ) : (
+            <motion.button
+              type="button"
+              onClick={handleBook}
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.15 }}
+              className="px-8 py-3 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors font-sans shadow-md hover:shadow-lg"
+            >
+              Book now
+            </motion.button>
           )}
         </div>
       </GlassCard>
