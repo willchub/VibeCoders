@@ -1,5 +1,22 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
+/** Turn Supabase/PostgREST error object into a proper Error so runtimes show a readable message. */
+function toError(err) {
+  if (err instanceof Error) return err;
+  const msg = err?.message || err?.error_description || String(err?.code || 'Request failed');
+  const e = new Error(msg);
+  if (err?.code) e.code = err.code;
+  return e;
+}
+
+/** True if error indicates a missing column (run missing migrations). */
+function isMissingColumnError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  const missingColumn = msg.includes('does not exist') && (msg.includes('column') || msg.includes('seller_id') || msg.includes('business_logo'));
+  const schemaCache = msg.includes('schema cache') && (msg.includes('seller_id') || msg.includes('column'));
+  return missingColumn || schemaCache;
+}
+
 // Map DB row (snake_case) to app shape (camelCase). Build location from lat/lng/address or jsonb.
 const rowToListing = (row) => {
   let location = null;
@@ -131,7 +148,7 @@ export const getListings = async () => {
       .select('*')
       .eq('status', 'available')
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (error) throw toError(error);
     return (data || []).map(rowToListing);
   }
   return new Promise((resolve) => {
@@ -150,7 +167,8 @@ export const getListingById = async (id) => {
   if (isSupabaseConfigured()) {
     // Supabase `listings.id` is a UUID string, so query by the raw id value.
     const { data, error } = await supabase.from('listings').select('*').eq('id', id).single();
-    if (error || !data) return null;
+    if (error && error.code !== 'PGRST116') throw toError(error);
+    if (!data) return null;
     return rowToListing(data);
   }
 
@@ -175,7 +193,10 @@ export const getMyListings = async (userId) => {
       .select('*')
       .eq('seller_id', userId)
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (error) {
+      if (isMissingColumnError(error)) return [];
+      throw toError(error);
+    }
     return (data || []).map(rowToListing);
   }
   return new Promise((resolve) => {
@@ -229,7 +250,7 @@ export const createListing = async (listing, sellerId = null) => {
 
   if (isSupabaseConfigured()) {
     const loc = listing.location;
-    const insertRow = {
+    let insertRow = {
       title: listing.title || 'Untitled',
       seller: listing.seller || 'My Business',
       type: listing.type || 'Salon',
@@ -246,8 +267,15 @@ export const createListing = async (listing, sellerId = null) => {
       insertRow.lng = loc.lng;
       insertRow.address = loc.address || null;
     }
-    const { data, error } = await supabase.from('listings').insert(insertRow).select().single();
-    if (error) throw error;
+    let { data, error } = await supabase.from('listings').insert(insertRow).select().single();
+    if (error && isMissingColumnError(error)) {
+      const { seller_id: _sid, ...rowWithoutSellerId } = insertRow;
+      const { data: d2, error: e2 } = await supabase.from('listings').insert(rowWithoutSellerId).select().single();
+      if (e2) throw toError(e2);
+      data = d2;
+      error = null;
+    }
+    if (error) throw toError(error);
     return rowToListing(data);
   }
 
@@ -292,7 +320,7 @@ export const saveStoreLocation = async (listingId, location) => {
       .eq('id', listingId)
       .select()
       .single();
-    if (error) throw error;
+    if (error) throw toError(error);
     return rowToListing(data);
   }
   return new Promise((resolve, reject) => {
@@ -327,7 +355,7 @@ export const createTransaction = async (payload) => {
     buyer_email: payload.buyerEmail || null,
     user_id: payload.userId || null,
   });
-  if (error) throw error;
+  if (error) throw toError(error);
   return null;
 };
 
@@ -341,7 +369,7 @@ export const markListingSold = async (listingId) => {
       .from('listings')
       .update({ status: 'sold' })
       .eq('id', listingId);
-    if (error) throw error;
+    if (error) throw toError(error);
     return;
   }
 
@@ -363,7 +391,7 @@ export const getMyTransactions = async (userId) => {
       .select('id, created_at, listing_id, listing_title, seller, amount, currency, status, payment_method')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (error) throw toError(error);
     return (data || []).map((row) => ({
       id: row.id,
       createdAt: row.created_at,
@@ -388,7 +416,11 @@ export const getBusinessProfile = async (userId) => {
   if (!userId) return { logoUrl: '', instagramUrl: '', photoUrls: [] };
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase.from('profiles').select('business_logo_url, business_instagram_url, business_photos').eq('id', userId).single();
-    if (error && error.code !== 'PGRST116') throw error;
+    if (error) {
+      if (error.code === 'PGRST116') return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+      if (isMissingColumnError(error)) return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+      throw toError(error);
+    }
     const photos = data?.business_photos;
     return {
       logoUrl: data?.business_logo_url || '',
@@ -424,7 +456,10 @@ export const updateBusinessProfile = async (userId, { logoUrl, instagramUrl, pho
         business_photos: Array.isArray(photoUrls) ? photoUrls : [],
       })
       .eq('id', userId);
-    if (error) throw error;
+    if (error) {
+      if (isMissingColumnError(error)) return { logoUrl: logoUrl || '', instagramUrl: instagramUrl || '', photoUrls: photoUrls || [] };
+      throw toError(error);
+    }
     return { logoUrl: logoUrl || '', instagramUrl: instagramUrl || '', photoUrls: photoUrls || [] };
   }
   const payload = {
