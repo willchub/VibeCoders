@@ -14,7 +14,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getListings, searchListings, getBusinessProfile } from '../services/api';
 import { searchAddressSuggestions } from '../services/geocode';
 
-const CATEGORIES = ['All Services', 'Barbershop', 'Gym Class', 'Salon', 'Physio'];
+const CATEGORIES = ['All Services', 'Barbershop', 'Gym Class', 'Salon', 'Nail Salon'];
 const VIEW_LIST = 'list';
 const VIEW_MAP = 'map';
 

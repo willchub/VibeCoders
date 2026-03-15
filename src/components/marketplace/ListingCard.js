@@ -11,19 +11,16 @@ const TYPE_GRADIENTS = {
   Salon: 'bg-gradient-to-br from-rose-50 to-white',
   Barbershop: 'bg-gradient-to-br from-amber-50 to-white',
   'Gym Class': 'bg-gradient-to-br from-orange-50 to-white',
-  Physio: 'bg-gradient-to-br from-stone-100 to-white',
+  'Nail Salon': 'bg-gradient-to-br from-stone-100 to-white',
   default: 'bg-gradient-to-br from-rose-50/80 to-white', // soft blush fallback
 };
 
 const getCardGradient = (type) => TYPE_GRADIENTS[type] || TYPE_GRADIENTS.default;
 
-// Default logo when no business logo is set — barber/salon themed for a coherent look
-const DEFAULT_LOGO =
-  'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=200&h=200&fit=crop';
 // Fallback Instagram so test/demo listings always show the icon
 const FALLBACK_INSTAGRAM = 'https://instagram.com';
 
-const ListingCard = ({ listing, index = 0, onBook, editHref, businessLogoUrl, instagramUrl }) => {
+const ListingCard = ({ listing, index = 0, onBook, editHref, instagramUrl }) => {
   const navigate = useNavigate();
   const { isAuthenticated, isBusiness } = useAuth();
   const { isFavourited, toggleFavourite } = useFavourites();
@@ -43,7 +40,6 @@ const ListingCard = ({ listing, index = 0, onBook, editHref, businessLogoUrl, in
     isExpired,
     status,
   } = listing;
-  const logoUrl = businessLogoUrl || DEFAULT_LOGO;
   const instagramToUse = instagramUrl || FALLBACK_INSTAGRAM;
   const instagramHref = instagramToUse.startsWith('http')
     ? instagramToUse
@@ -132,19 +128,11 @@ const ListingCard = ({ listing, index = 0, onBook, editHref, businessLogoUrl, in
 
       <div className="p-5 border-t border-white/40">
         <div className="flex justify-between items-start mb-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <img
-              src={logoUrl}
-              alt=""
-              className="w-10 h-10 rounded-lg object-cover border border-gray-200 flex-shrink-0"
-              onError={(e) => { e.target.src = DEFAULT_LOGO; }}
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider">
-                {type}
-              </p>
-              <h3 className="font-sans text-lg font-semibold text-brand-secondary leading-tight truncate">{seller}</h3>
-            </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider">
+              {type}
+            </p>
+            <h3 className="font-sans text-lg font-semibold text-brand-secondary leading-tight truncate">{seller}</h3>
           </div>
           <div className="flex items-center text-xs font-medium flex-shrink-0">
             <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />

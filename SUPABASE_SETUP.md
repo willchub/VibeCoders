@@ -66,6 +66,19 @@ create policy "Allow update for authenticated"
 
 ---
 
+## 3b. (Optional) Listing image uploads
+
+Sellers can upload listing images via a dropzone instead of pasting URLs. To enable this:
+
+1. In the dashboard go to **Storage** → **New bucket**.
+2. Create a bucket named **`listing-images`**.
+3. Make it **Public** so listing images can be displayed without signed URLs.
+4. Add a policy so authenticated users can upload: **Policies** → **New policy** → “For full customization” and allow `INSERT` (and optionally `UPDATE`, `DELETE`) for `auth.role() = 'authenticated'` on the `listing-images` bucket.
+
+If the bucket doesn’t exist, the app will show an error when a seller tries to upload an image; they can leave the image empty to use the default placeholder.
+
+---
+
 ## 4. Configure the app
 
 In the project root, copy the example env and fill in your values:
