@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Store, PlusCircle, LayoutGrid } from 'lucide-react';
 import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
 import ListingCard from '../components/marketplace/ListingCard';
-import BookingModal from './BookingModal';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyListings, getBusinessProfile } from '../services/api';
 
@@ -12,8 +11,6 @@ const BusinessHomePage = () => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState({ logoUrl: '', instagramUrl: '', photoUrls: [] });
-  const [selectedListing, setSelectedListing] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -25,6 +22,30 @@ const BusinessHomePage = () => {
   }, [user?.id]);
 
   const businessName = user?.user_metadata?.full_name || 'My business';
+
+  const activeListings = listings.filter(
+    (l) => (l.status === 'available' || !l.status) && !l.isExpired
+  );
+  const soldListings = listings.filter((l) => l.status === 'sold');
+  const expiredListings = listings.filter(
+    (l) => l.status === 'expired' || l.isExpired
+  );
+
+  const renderListingGrid = (items, emptyMessage) =>
+    items.length === 0 ? (
+      <p className="text-brand-muted text-sm">{emptyMessage}</p>
+    ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {items.map((listing, idx) => (
+          <ListingCard
+            key={listing.id}
+            listing={listing}
+            index={idx}
+            editHref={`/seller-dashboard?edit=${listing.id}`}
+          />
+        ))}
+      </div>
+    );
 
   return (
     <GlassPageLayout title={businessName} maxWidth="max-w-7xl">
@@ -98,23 +119,26 @@ const BusinessHomePage = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {listings.map((listing, idx) => (
-              <ListingCard key={listing.id} listing={listing} index={idx} onBook={(l) => { setSelectedListing(l); setModalOpen(true); }} />
-            ))}
-          </div>
+          <>
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold text-zinc-900 mb-1">Active listings</h2>
+              <p className="text-sm text-zinc-600 mb-4">Live on the marketplace; appointment time is in the future.</p>
+              {renderListingGrid(activeListings, 'No active listings.')}
+            </section>
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold text-zinc-900 mb-1">Sold</h2>
+              <p className="text-sm text-zinc-600 mb-4">Listings that have been booked.</p>
+              {renderListingGrid(soldListings, 'No sold listings.')}
+            </section>
+            <section>
+              <h2 className="text-lg font-semibold text-zinc-900 mb-1">Expired</h2>
+              <p className="text-sm text-zinc-600 mb-4">Appointment time has passed; no longer shown on the marketplace.</p>
+              {renderListingGrid(expiredListings, 'No expired listings.')}
+            </section>
+          </>
         )}
       </GlassCard>
 
-      <BookingModal
-        listing={selectedListing}
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedListing(null);
-        }}
-        onConfirm={() => setModalOpen(false)}
-      />
     </GlassPageLayout>
   );
 };

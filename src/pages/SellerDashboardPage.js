@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, MapPin } from 'lucide-react';
 import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
 import LocationPicker from '../components/map/LocationPicker';
 import { useAuth } from '../contexts/AuthContext';
-import { getMyListings, saveStoreLocation, createListing, ensureProfileExists, getBusinessProfile, updateBusinessProfile } from '../services/api';
+import { getMyListings, getListingById, saveStoreLocation, createListing, updateListing, deleteListing, getBusinessProfile, updateBusinessProfile } from '../services/api';
 
 const LISTING_TYPES = ['Barbershop', 'Gym Class', 'Salon', 'Physio'];
 
@@ -20,6 +20,8 @@ const PRESET_LOCATIONS = [
 
 const SellerDashboardPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
   const { user, isAuthenticated, isBusiness } = useAuth();
   const [listings, setListings] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -41,11 +43,37 @@ const SellerDashboardPage = () => {
   const [profileForm, setProfileForm] = useState({ logoUrl: '', instagramUrl: '', photoUrlsText: '' });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (user?.id) getMyListings(user.id).then(setListings);
     else setListings([]);
   }, [user?.id]);
+
+  // Load listing into form when editing
+  useEffect(() => {
+    if (!editId) return;
+    setEditLoading(true);
+    getListingById(editId)
+      .then((listing) => {
+        if (!listing) return;
+        const apt = listing.appointmentTime ? new Date(listing.appointmentTime) : null;
+        const localDatetime = apt ? apt.toISOString().slice(0, 16) : '';
+        setForm({
+          title: listing.title || '',
+          seller: listing.seller || '',
+          type: listing.type || 'Salon',
+          originalPrice: listing.originalPrice ?? '',
+          discountedPrice: listing.discountedPrice ?? '',
+          imageUrl: listing.imageUrl || '',
+          appointmentTime: localDatetime,
+          location: listing.location ? { ...listing.location } : null,
+        });
+      })
+      .catch(() => setError('Could not load listing to edit.'))
+      .finally(() => setEditLoading(false));
+  }, [editId]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -101,28 +129,41 @@ const SellerDashboardPage = () => {
       setError('You must be signed in as a business to add listings.');
       return;
     }
+    const payload = {
+      ...form,
+      originalPrice: original,
+      discountedPrice: discounted,
+      location: form.location,
+    };
     try {
-      await ensureProfileExists(user.id, user.user_metadata?.full_name ?? user.user_metadata?.name ?? '');
-      await createListing(
-        {
-          ...form,
-          originalPrice: original,
-          discountedPrice: discounted,
-          location: form.location,
-        },
-        user.id
-      );
-      setSuccess('Listing created. It will appear on the marketplace and map.');
-      setForm({
-        title: '',
-        seller: '',
-        type: 'Salon',
-        originalPrice: '',
-        discountedPrice: '',
-        imageUrl: '',
-        appointmentTime: '',
-        location: null,
-      });
+      if (editId) {
+        await updateListing(editId, payload, user.id);
+        setSuccess('Listing updated.');
+        setSearchParams({});
+        setForm({
+          title: '',
+          seller: '',
+          type: 'Salon',
+          originalPrice: '',
+          discountedPrice: '',
+          imageUrl: '',
+          appointmentTime: '',
+          location: null,
+        });
+      } else {
+        await createListing(payload, user.id);
+        setSuccess('Listing created. It will appear on the marketplace and map.');
+        setForm({
+          title: '',
+          seller: '',
+          type: 'Salon',
+          originalPrice: '',
+          discountedPrice: '',
+          imageUrl: '',
+          appointmentTime: '',
+          location: null,
+        });
+      }
       getMyListings(user.id).then(setListings);
     } catch (err) {
       const message = err?.message || err?.error_description || 'Something went wrong. Please try again.';
@@ -150,6 +191,32 @@ const SellerDashboardPage = () => {
       setProfileMessage({ type: 'error', text: err.message || 'Failed to save profile.' });
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  const handleDeleteListing = async () => {
+    if (!editId || !window.confirm('Delete this listing? This cannot be undone.')) return;
+    setDeleting(true);
+    setError('');
+    try {
+      await deleteListing(editId);
+      setSuccess('Listing deleted.');
+      setSearchParams({});
+      setForm({
+        title: '',
+        seller: '',
+        type: 'Salon',
+        originalPrice: '',
+        discountedPrice: '',
+        imageUrl: '',
+        appointmentTime: '',
+        location: null,
+      });
+      getMyListings(user.id).then(setListings);
+    } catch (err) {
+      setError(err?.message || 'Failed to delete listing.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -206,9 +273,12 @@ const SellerDashboardPage = () => {
       <GlassCard className="mb-8">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1 flex items-center gap-2">
           <PlusCircle className="h-5 w-5 text-brand-primary" />
-          Create a listing
+          {editId ? 'Edit listing' : 'Create a listing'}
         </h2>
-        <p className="text-zinc-600 text-sm mb-6">Fill in the details below to post a last-minute deal. It will appear on the marketplace.</p>
+        <p className="text-zinc-600 text-sm mb-6">
+          {editId ? 'Update the details below. Changes will appear on the marketplace.' : 'Fill in the details below to post a last-minute deal. It will appear on the marketplace.'}
+        </p>
+        {editLoading && <p className="text-zinc-600 text-sm mb-4">Loading listing…</p>}
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && <p className="text-sm text-red-400 bg-red-500/20 px-3 py-2 rounded-lg" role="alert">{error}</p>}
           {success && <p className="text-sm text-green-300 bg-green-500/20 px-3 py-2 rounded-lg" role="status">{success}</p>}
@@ -224,53 +294,151 @@ const SellerDashboardPage = () => {
             <label htmlFor="listing-type" className="block text-sm font-medium text-zinc-700 mb-1">Category</label>
             <select id="listing-type" name="type" value={form.type} onChange={handleChange} className={selectClass}>
               {LISTING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="listing-original" className="block text-sm font-medium text-zinc-700 mb-1">Original price ($)</label>
-              <input id="listing-original" name="originalPrice" type="number" min="0" step="1" value={form.originalPrice} onChange={handleChange} placeholder="40" className={inputClass} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="listing-original" className="block text-sm font-medium text-brand-secondary mb-1">
+                  Original price ($)
+                </label>
+                <input
+                  id="listing-original"
+                  name="originalPrice"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.originalPrice}
+                  onChange={handleChange}
+                  placeholder="40"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="listing-discounted" className="block text-sm font-medium text-brand-secondary mb-1">
+                  Discounted price ($)
+                </label>
+                <input
+                  id="listing-discounted"
+                  name="discountedPrice"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.discountedPrice}
+                  onChange={handleChange}
+                  placeholder="25"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                />
+              </div>
             </div>
             <div>
-              <label htmlFor="listing-discounted" className="block text-sm font-medium text-zinc-700 mb-1">Discounted price ($)</label>
-              <input id="listing-discounted" name="discountedPrice" type="number" min="0" step="1" value={form.discountedPrice} onChange={handleChange} placeholder="25" className={inputClass} />
+              <label htmlFor="listing-image" className="block text-sm font-medium text-brand-secondary mb-1">
+                Image URL
+              </label>
+              <input
+                id="listing-image"
+                name="imageUrl"
+                type="url"
+                value={form.imageUrl}
+                onChange={handleChange}
+                placeholder="https://..."
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+              />
+              <p className="mt-1 text-xs text-brand-muted">Optional. Leave blank for a default image.</p>
             </div>
-          </div>
-          <div>
-            <label htmlFor="listing-image" className="block text-sm font-medium text-zinc-700 mb-1">Image URL</label>
-            <input id="listing-image" name="imageUrl" type="url" value={form.imageUrl} onChange={handleChange} placeholder="https://..." className={inputClass} />
-            <p className="mt-1 text-xs text-zinc-500">Optional. Leave blank for a default image.</p>
-          </div>
-          <div>
-            <label htmlFor="listing-time" className="block text-sm font-medium text-zinc-700 mb-1">Appointment date & time</label>
-            <input id="listing-time" name="appointmentTime" type="datetime-local" value={form.appointmentTime} onChange={handleChange} className={inputClass} />
-          </div>
-          <div>
-            <label htmlFor="listing-location-preset" className="block text-sm font-medium text-zinc-700 mb-1">Location</label>
-            <select
-              id="listing-location-preset"
-              value={PRESET_LOCATIONS.find((p) => p.lat === form.location?.lat && p.lng === form.location?.lng)?.id || (form.location ? 'custom' : '')}
-              onChange={(e) => {
-                const preset = PRESET_LOCATIONS.find((p) => p.id === e.target.value);
-                setForm((prev) => ({ ...prev, location: preset && preset.lat != null ? { lat: preset.lat, lng: preset.lng, address: preset.address } : prev.location }));
-                setError('');
-                setSuccess('');
-              }}
-              className={selectClass}
-            >
-              <option value="">— Select a location —</option>
-              {PRESET_LOCATIONS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-            </select>
-            <p className="mt-1 text-xs text-zinc-500">Optional. Choose a preset or pick on the map below.</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Pick exact spot on map</label>
-            <LocationPicker value={form.location} onChange={(loc) => { setForm((prev) => ({ ...prev, location: loc })); setError(''); setSuccess(''); }} height="320px" placeholder="Search address or click map..." />
-          </div>
-          <button type="submit" className="w-full py-3 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors">
-            Create listing
-          </button>
-        </form>
+            <div>
+              <label htmlFor="listing-time" className="block text-sm font-medium text-brand-secondary mb-1">
+                Appointment date & time
+              </label>
+              <input
+                id="listing-time"
+                name="appointmentTime"
+                type="datetime-local"
+                value={form.appointmentTime}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="listing-location-preset" className="block text-sm font-medium text-brand-secondary mb-1">
+                Location
+              </label>
+              <select
+                id="listing-location-preset"
+                value={PRESET_LOCATIONS.find((p) => p.lat === form.location?.lat && p.lng === form.location?.lng)?.id || (form.location ? 'custom' : '')}
+                onChange={(e) => {
+                  const preset = PRESET_LOCATIONS.find((p) => p.id === e.target.value);
+                  setForm((prev) => ({
+                    ...prev,
+                    location: preset && preset.lat != null ? { lat: preset.lat, lng: preset.lng, address: preset.address } : prev.location,
+                  }));
+                  setError('');
+                  setSuccess('');
+                }}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
+              >
+                <option value="">— Select a location —</option>
+                {PRESET_LOCATIONS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-brand-muted">Optional. Choose a preset or pick on the map below.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-brand-secondary mb-1">Pick exact spot on map</label>
+              <LocationPicker
+                value={form.location}
+                onChange={(loc) => {
+                  setForm((prev) => ({ ...prev, location: loc }));
+                  setError('');
+                  setSuccess('');
+                }}
+                height="320px"
+                placeholder="Search address or click map..."
+              />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {editId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchParams({});
+                    setForm({
+                      title: '',
+                      seller: '',
+                      type: 'Salon',
+                      originalPrice: '',
+                      discountedPrice: '',
+                      imageUrl: '',
+                      appointmentTime: '',
+                      location: null,
+                    });
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className="px-5 py-3 rounded-xl border border-gray-200 text-brand-secondary font-medium hover:bg-gray-50"
+                >
+                  Cancel edit
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={editLoading}
+                className="flex-1 min-w-[140px] py-3 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors disabled:opacity-50"
+              >
+                {editId ? 'Update listing' : 'Create listing'}
+              </button>
+              {editId && (
+                <button
+                  type="button"
+                  onClick={handleDeleteListing}
+                  disabled={deleting}
+                  className="px-5 py-3 rounded-xl border border-red-200 text-red-600 font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting…' : 'Delete listing'}
+                </button>
+              )}
+            </div>
+          </form>
       </GlassCard>
 
       <GlassCard>

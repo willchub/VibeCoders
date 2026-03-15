@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Star, MapPin, Instagram, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
-import { getListingById } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { getListingById, getBusinessProfile } from '../services/api';
 
 const formatTime = (isoString) => {
   const date = new Date(isoString);
@@ -78,8 +79,10 @@ const ImageCarousel = ({ images }) => {
 const ListingDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isBusiness } = useAuth();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [businessProfile, setBusinessProfile] = useState({ logoUrl: '', instagramUrl: '' });
 
   useEffect(() => {
     getListingById(id)
@@ -87,6 +90,13 @@ const ListingDetailPage = () => {
       .catch(() => setListing(null))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!listing?.sellerId) return;
+    getBusinessProfile(listing.sellerId)
+      .then((p) => setBusinessProfile({ logoUrl: p?.logoUrl || '', instagramUrl: p?.instagramUrl || '' }))
+      .catch(() => setBusinessProfile({ logoUrl: '', instagramUrl: '' }));
+  }, [listing?.sellerId]);
 
   const handleBook = () => {
     navigate('/marketplace', { state: { openBooking: listing } });
@@ -130,10 +140,20 @@ const ListingDetailPage = () => {
 
       <GlassCard className="mt-8">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-          <div>
-            <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider mb-1">{listing.type}</p>
-            <h1 className="font-sans text-2xl md:text-3xl font-semibold text-zinc-900">{listing.seller}</h1>
-            <p className="font-sans text-lg text-zinc-600 mt-1">{listing.title}</p>
+          <div className="flex items-start gap-4">
+            {businessProfile.logoUrl && (
+              <img
+                src={businessProfile.logoUrl}
+                alt=""
+                className="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            )}
+            <div>
+              <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider mb-1">{listing.type}</p>
+              <h1 className="font-sans text-2xl md:text-3xl font-semibold text-zinc-900">{listing.seller}</h1>
+              <p className="font-sans text-lg text-zinc-600 mt-1">{listing.title}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Star className="w-5 h-5 text-yellow-400 fill-current" />
@@ -141,14 +161,30 @@ const ListingDetailPage = () => {
           </div>
         </div>
 
-        {listing.location?.address && (
-          <div className="flex flex-wrap gap-4 items-center text-zinc-600 font-sans text-sm mb-6">
+        <div className="flex flex-wrap gap-4 items-center text-zinc-600 font-sans text-sm mb-6">
+          {listing.location?.address && (
             <span className="flex items-center gap-2">
               <MapPin className="w-4 h-4 flex-shrink-0" />
               {suburb} · {listing.location.address}
             </span>
-          </div>
-        )}
+          )}
+          {(businessProfile.instagramUrl || listing.instagramUrl) && (
+            <a
+              href={
+                businessProfile.instagramUrl?.startsWith('http')
+                  ? businessProfile.instagramUrl
+                  : listing.instagramUrl?.startsWith('http')
+                    ? listing.instagramUrl
+                    : `https://instagram.com/${(businessProfile.instagramUrl || listing.instagramUrl || '').replace('@', '')}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-brand-primary hover:underline font-medium"
+            >
+              <Instagram className="w-4 h-4 flex-shrink-0" /> Instagram
+            </a>
+          )}
+        </div>
 
         {listing.description && (
           <p className="font-sans text-zinc-600 leading-relaxed mb-8">{listing.description}</p>
@@ -166,11 +202,38 @@ const ListingDetailPage = () => {
         </div>
 
         <div className="flex flex-wrap gap-3 mt-8">
-          <motion.button type="button" onClick={handleBook} whileTap={{ scale: 0.97 }} whileHover={{ y: -2 }} transition={{ duration: 0.15 }} className="px-8 py-3 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors font-sans shadow-md hover:shadow-lg">
-            Book now
-          </motion.button>
-          {listing.instagramUrl && (
-            <motion.a href={listing.instagramUrl} target="_blank" rel="noopener noreferrer" whileTap={{ scale: 0.97 }} whileHover={{ y: -2 }} transition={{ duration: 0.15 }} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-zinc-900 font-medium hover:bg-gray-50 transition-colors font-sans">
+          {isBusiness ? (
+            <p className="text-zinc-600 text-sm font-medium py-2">
+              Business accounts can only view listings. Sign in as a customer to book.
+            </p>
+          ) : (
+            <motion.button
+              type="button"
+              onClick={handleBook}
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.15 }}
+              className="px-8 py-3 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors font-sans shadow-md hover:shadow-lg"
+            >
+              Book now
+            </motion.button>
+          )}
+          {(businessProfile.instagramUrl || listing.instagramUrl) && (
+            <motion.a
+              href={
+                businessProfile.instagramUrl?.startsWith('http')
+                  ? businessProfile.instagramUrl
+                  : listing.instagramUrl?.startsWith('http')
+                    ? listing.instagramUrl
+                    : `https://instagram.com/${(businessProfile.instagramUrl || listing.instagramUrl || '').replace('@', '')}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              whileTap={{ scale: 0.97 }}
+              whileHover={{ y: -2 }}
+              transition={{ duration: 0.15 }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-zinc-900 font-medium hover:bg-gray-50 transition-colors font-sans"
+            >
               <Instagram className="w-5 h-5" /> Instagram
             </motion.a>
           )}

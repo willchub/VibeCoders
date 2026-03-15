@@ -17,6 +17,16 @@ function isMissingColumnError(err) {
   return missingColumn || schemaCache;
 }
 
+/** True if we should return empty data instead of throwing (400 = bad request, often missing columns). */
+function isRecoverableSchemaError(err) {
+  if (!err) return false;
+  if (isMissingColumnError(err)) return true;
+  const code = err.code ?? err.status;
+  if (code === 400 || code === '400') return true;
+  const msg = (err?.message || '').toLowerCase();
+  return msg.includes('bad request') || msg.includes('400');
+}
+
 // Map DB row (snake_case) to app shape (camelCase). Build location from lat/lng/address or jsonb.
 const rowToListing = (row) => {
   let location = null;
@@ -53,22 +63,28 @@ const DEFAULT_IMAGE =
   'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop';
 
 /**
- * Fetch all listings (public marketplace). Uses Supabase when configured, otherwise returns mock data.
+ * Fetch all listings (public marketplace). Only returns non-expired listings (appointment_time in the future).
  */
 export const getListings = async () => {
+  const nowIso = new Date().toISOString();
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
-      .from('listings')
-      .select('*')
-      .eq('status', 'available')
-      .order('created_at', { ascending: false });
+    const base = () =>
+      supabase.from('listings').select('*').gt('appointment_time', nowIso).order('created_at', { ascending: false });
+    const { data, error } = await base().eq('status', 'available');
+    if (error && isRecoverableSchemaError(error)) {
+      const fallback = await base();
+      if (fallback.error) throw toError(fallback.error);
+      return (fallback.data || []).map(rowToListing);
+    }
     if (error) throw toError(error);
     return (data || []).map(rowToListing);
   }
   return new Promise((resolve) => {
     setTimeout(() => {
-      // In mock mode, treat listings without status as available by default.
-      const available = mockListings.filter((l) => !l.status || l.status === 'available');
+      const now = Date.now();
+      const available = mockListings.filter(
+        (l) => (!l.status || l.status === 'available') && new Date(l.appointmentTime || 0).getTime() > now
+      );
       resolve([...available]);
     }, 500);
   });
@@ -97,25 +113,60 @@ export const getListingById = async (id) => {
 };
 
 /**
- * Fetch listings owned by the current business (seller_id = userId). For seller dashboard only.
+ * Fetch listings owned by the current business (seller_id = userId).
+ * Also includes listings with seller_id null (e.g. created before column existed) so they appear on My business;
+ * after the user edits and saves one, seller_id is set and it stays assigned.
  */
 export const getMyListings = async (userId) => {
   if (!userId) return [];
   if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
+    const { data: owned, error: errOwned } = await supabase
       .from('listings')
       .select('*')
       .eq('seller_id', userId)
       .order('created_at', { ascending: false });
-    if (error) {
-      if (isMissingColumnError(error)) return [];
-      throw toError(error);
+    if (errOwned) {
+      if (isRecoverableSchemaError(errOwned)) return [];
+      throw toError(errOwned);
     }
-    return (data || []).map(rowToListing);
+    const { data: unassigned, error: errUnassigned } = await supabase
+      .from('listings')
+      .select('*')
+      .is('seller_id', null)
+      .order('created_at', { ascending: false });
+    if (errUnassigned) {
+      if (isRecoverableSchemaError(errUnassigned)) return (owned || []).map(rowToListing);
+      throw toError(errUnassigned);
+    }
+    const combined = [...(owned || []), ...(unassigned || [])];
+    combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    const now = new Date();
+    const nowIso = now.toISOString();
+    for (const row of combined) {
+      const status = row.status || 'available';
+      if (status === 'available' && row.appointment_time && new Date(row.appointment_time) < now) {
+        try {
+          await supabase.from('listings').update({ status: 'expired' }).eq('id', row.id);
+        } catch (_) {}
+      }
+    }
+    return combined.map((row) => {
+      const listing = rowToListing(row);
+      const apt = new Date(row.appointment_time || 0);
+      listing.isExpired = listing.status === 'expired' || apt < now;
+      if (listing.isExpired && listing.status === 'available') listing.status = 'expired';
+      return listing;
+    });
   }
   return new Promise((resolve) => {
     setTimeout(() => {
-      const mine = mockListings.filter((l) => l.sellerId === userId);
+      const now = Date.now();
+      const mine = mockListings
+        .filter((l) => l.sellerId === userId)
+        .map((l) => {
+          const isExp = new Date(l.appointmentTime || 0).getTime() < now;
+          return { ...l, isExpired: isExp, status: l.status || (isExp ? 'expired' : 'available') };
+        });
       resolve(mine);
     }, 300);
   });
@@ -197,6 +248,7 @@ export const createListing = async (listing, sellerId = null) => {
       rating: 4.5,
       reviews: 0,
       seller_id: sellerId || null,
+      status: 'available',
     };
     if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
       insertRow.lat = loc.lat;
@@ -240,11 +292,78 @@ export const createListing = async (listing, sellerId = null) => {
         reviews: 0,
         location: listing.location || null,
         sellerId: sellerId || null,
+        status: 'available',
       };
       mockListings.push(newListing);
       resolve(newListing);
     }, 300);
   });
+};
+
+/**
+ * Update an existing listing. Uses Supabase when configured, otherwise mock.
+ * Pass sellerId when the current user should be set as owner (e.g. claiming an unassigned listing).
+ */
+export const updateListing = async (listingId, listing, sellerId = null) => {
+  const appointmentTime = listing.appointmentTime
+    ? new Date(listing.appointmentTime).toISOString()
+    : undefined;
+
+  if (isSupabaseConfigured()) {
+    const loc = listing.location;
+    const updateRow = {
+      title: listing.title ?? undefined,
+      seller: listing.seller ?? undefined,
+      type: listing.type ?? undefined,
+      original_price: listing.originalPrice != null ? Number(listing.originalPrice) : undefined,
+      discounted_price: listing.discountedPrice != null ? Number(listing.discountedPrice) : undefined,
+      image_url: listing.imageUrl ?? undefined,
+      ...(appointmentTime && { appointment_time: appointmentTime }),
+      ...(sellerId && { seller_id: sellerId }),
+    };
+    if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+      updateRow.lat = loc.lat;
+      updateRow.lng = loc.lng;
+      updateRow.address = loc.address || null;
+    }
+    const filtered = Object.fromEntries(Object.entries(updateRow).filter(([, v]) => v !== undefined));
+    const { data, error } = await supabase
+      .from('listings')
+      .update(filtered)
+      .eq('id', listingId)
+      .select()
+      .single();
+    if (error) throw toError(error);
+    return rowToListing(data);
+  }
+
+  const id = typeof listingId === 'string' && !Number.isNaN(Number(listingId)) ? Number(listingId) : listingId;
+  const target = mockListings.find((l) => l.id === id || l.id === listingId);
+  if (!target) throw new Error('Listing not found');
+  target.title = listing.title ?? target.title;
+  target.seller = listing.seller ?? target.seller;
+  target.type = listing.type ?? target.type;
+  target.originalPrice = listing.originalPrice != null ? Number(listing.originalPrice) : target.originalPrice;
+  target.discountedPrice = listing.discountedPrice != null ? Number(listing.discountedPrice) : target.discountedPrice;
+  target.imageUrl = listing.imageUrl ?? target.imageUrl;
+  if (appointmentTime) target.appointmentTime = appointmentTime;
+  if (listing.location) target.location = listing.location;
+  return { ...target };
+};
+
+/**
+ * Delete a listing. Business owners can delete their own listings.
+ */
+export const deleteListing = async (listingId) => {
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase.from('listings').delete().eq('id', listingId);
+    if (error) throw toError(error);
+    return;
+  }
+  const id = typeof listingId === 'string' && !Number.isNaN(Number(listingId)) ? Number(listingId) : listingId;
+  const idx = mockListings.findIndex((l) => l.id === id || l.id === listingId);
+  if (idx === -1) throw new Error('Listing not found');
+  mockListings.splice(idx, 1);
 };
 
 /**
@@ -363,7 +482,7 @@ export const getBusinessProfile = async (userId) => {
     const { data, error } = await supabase.from('profiles').select('business_logo_url, business_instagram_url, business_photos').eq('id', userId).single();
     if (error) {
       if (error.code === 'PGRST116') return { logoUrl: '', instagramUrl: '', photoUrls: [] };
-      if (isMissingColumnError(error)) return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+      if (isRecoverableSchemaError(error)) return { logoUrl: '', instagramUrl: '', photoUrls: [] };
       throw toError(error);
     }
     const photos = data?.business_photos;
@@ -402,7 +521,7 @@ export const updateBusinessProfile = async (userId, { logoUrl, instagramUrl, pho
       })
       .eq('id', userId);
     if (error) {
-      if (isMissingColumnError(error)) return { logoUrl: logoUrl || '', instagramUrl: instagramUrl || '', photoUrls: photoUrls || [] };
+      if (isRecoverableSchemaError(error)) return { logoUrl: logoUrl || '', instagramUrl: instagramUrl || '', photoUrls: photoUrls || [] };
       throw toError(error);
     }
     return { logoUrl: logoUrl || '', instagramUrl: instagramUrl || '', photoUrls: photoUrls || [] };
