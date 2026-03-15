@@ -60,6 +60,9 @@ const Header = ({ variant = 'light' }) => {
             <Link to="/marketplace" className={linkClass('/marketplace', location.pathname, variant)}>
               Marketplace
             </Link>
+            <Link to="/bookings-calendar" className={linkClass('/bookings-calendar', location.pathname, variant)}>
+              Calendar
+            </Link>
             {isBusiness && (
               <Link to="/seller-dashboard" className={linkClass('/seller-dashboard', location.pathname, variant)}>
                 Create listing

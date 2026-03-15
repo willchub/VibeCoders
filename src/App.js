@@ -9,6 +9,7 @@ import CheckoutSuccessPage from './pages/CheckoutSuccessPage';
 import CheckoutCancelPage from './pages/CheckoutCancelPage';
 import ListingDetailPage from './pages/ListingDetailPage';
 import AppointmentsPage from './pages/AppointmentsPage';
+import BookingsCalendarPage from './pages/BookingsCalendarPage';
 import BusinessSettingsPage from './pages/BusinessSettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import './index.css';
@@ -30,6 +31,7 @@ function App() {
           <Route path="/checkout-success" element={<CheckoutSuccessPage />} />
           <Route path="/checkout-cancel" element={<CheckoutCancelPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
+          <Route path="/bookings-calendar" element={<BookingsCalendarPage />} />
         </Routes>
       </div>
     </Router>
