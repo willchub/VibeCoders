@@ -86,7 +86,11 @@ const ListingCard = ({ listing, index = 0, onBook, editHref, instagramUrl }) => 
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className={`w-full h-full object-cover transition-transform duration-500 ${
+            type === 'Salon'
+              ? 'scale-105 group-hover:scale-110'
+              : 'group-hover:scale-105'
+          }`}
         />
         <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
           <span className="bg-brand-primary text-white text-xs font-bold px-3 py-1 rounded-full">
