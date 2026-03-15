@@ -60,7 +60,7 @@ export default function HeroSection() {
       <div
         className="absolute inset-0 z-0 bg-cover bg-center opacity-40"
         style={{
-          backgroundImage: "url(https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&q=80)",
+          backgroundImage: "url(/images/hero-background.png)",
           maskImage: "linear-gradient(180deg, transparent, black 0%, black 70%, transparent)",
           WebkitMaskImage: "linear-gradient(180deg, transparent, black 0%, black 70%, transparent)",
         }}

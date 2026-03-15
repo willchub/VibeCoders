@@ -95,6 +95,23 @@ REACT_APP_SUPABASE_ANON_KEY=your-anon-key
 
 ---
 
+## Troubleshooting: "listings_seller_id_fkey" when creating a listing
+
+This means `listings.seller_id` points to a row that doesn’t exist in the referenced table.
+
+- **If `seller_id` references `auth.users (id)`:** The app sends the logged-in user’s id. Sign out and sign in again so the session matches the database. In the dashboard, check **Authentication → Users** and confirm your user exists.
+- **If `seller_id` references `public.profiles (id)`:** Each auth user must have a profile row. The schema uses a trigger `on_auth_user_created` to create a profile on signup. If the trigger was added after you created your user, your profile may be missing. Run in SQL Editor:
+
+  ```sql
+  insert into public.profiles (id, full_name)
+  values (auth.uid(), coalesce(auth.jwt()->>'user_metadata'->>'full_name', ''))
+  on conflict (id) do update set full_name = excluded.full_name;
+  ```
+
+  (Run while logged in so `auth.uid()` is your user id.) The app also calls `ensureProfileExists()` before creating a listing to reduce this issue.
+
+---
+
 ## Files involved
 
 | File | Role |

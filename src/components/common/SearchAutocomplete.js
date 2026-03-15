@@ -135,7 +135,7 @@ const SearchAutocomplete = ({
           aria-expanded={showDropdown}
           aria-controls={showDropdown ? listId : undefined}
           role="combobox"
-          className="w-full border-none focus:ring-0 text-sm outline-none bg-transparent"
+          className="w-full border-none focus:ring-0 text-sm text-zinc-900 placeholder:text-zinc-500 outline-none bg-transparent"
         />
         {showDropdown && (
           <ul

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Star, MapPin, Instagram, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import Header from '../components/common/Header';
-import Footer from '../components/common/Footer';
+import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
 import { getListingById } from '../services/api';
 
 const formatTime = (isoString) => {
@@ -95,28 +94,20 @@ const ListingDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="max-w-4xl mx-auto px-4 py-16 flex-grow text-center text-brand-muted">
-          Loading...
-        </main>
-        <Footer />
-      </div>
+      <GlassPageLayout maxWidth="max-w-4xl">
+        <p className="text-zinc-600 text-center py-16">Loading...</p>
+      </GlassPageLayout>
     );
   }
 
   if (!listing) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="max-w-4xl mx-auto px-4 py-16 flex-grow text-center">
-          <p className="text-brand-muted mb-4">Listing not found.</p>
-          <Link to="/marketplace" className="text-brand-primary font-medium hover:underline">
-            Back to marketplace
-          </Link>
-        </main>
-        <Footer />
-      </div>
+      <GlassPageLayout maxWidth="max-w-4xl">
+        <GlassCard className="text-center">
+          <p className="text-zinc-600 mb-4">Listing not found.</p>
+          <Link to="/marketplace" className="text-brand-primary font-medium hover:underline">Back to marketplace</Link>
+        </GlassCard>
+      </GlassPageLayout>
     );
   }
 
@@ -130,100 +121,62 @@ const ListingDetailPage = () => {
   const suburb = listing.suburb || (listing.location?.address || '').split(',')[0] || '—';
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 flex-grow">
-        <Link
-          to="/marketplace"
-          className="inline-flex items-center gap-2 text-brand-muted hover:text-brand-primary mb-8 font-sans text-sm"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to marketplace
-        </Link>
+    <GlassPageLayout maxWidth="max-w-4xl">
+      <Link to="/marketplace" className="inline-flex items-center gap-2 text-zinc-600 hover:text-zinc-900 mb-8 font-sans text-sm">
+        <ArrowLeft className="w-4 h-4" /> Back to marketplace
+      </Link>
 
-        <ImageCarousel images={images} />
+      <ImageCarousel images={images} />
 
-        <div className="mt-8">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-            <div>
-              <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider mb-1">
-                {listing.type}
-              </p>
-              <h1 className="font-sans text-2xl md:text-3xl font-semibold text-brand-secondary">
-                {listing.seller}
-              </h1>
-              <p className="font-sans text-lg text-brand-muted mt-1">{listing.title}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-400 fill-current" />
-              <span className="font-sans font-medium text-brand-secondary">
-                {listing.rating ?? 4.5} ({listing.reviews ?? 0} reviews)
-              </span>
-            </div>
+      <GlassCard className="mt-8">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div>
+            <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider mb-1">{listing.type}</p>
+            <h1 className="font-sans text-2xl md:text-3xl font-semibold text-zinc-900">{listing.seller}</h1>
+            <p className="font-sans text-lg text-zinc-600 mt-1">{listing.title}</p>
           </div>
-
-          <div className="flex flex-wrap gap-4 items-center text-brand-muted font-sans text-sm mb-6">
-            {listing.location?.address && (
-              <span className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 flex-shrink-0" />
-                {suburb} · {listing.location.address}
-              </span>
-            )}
-          </div>
-
-          {listing.description && (
-            <p className="font-sans text-brand-muted leading-relaxed mb-8">
-              {listing.description}
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-4 items-center pt-6 border-t border-gray-100">
-            <div className="flex items-baseline gap-2">
-              {discount > 0 && (
-                <span className="text-brand-muted line-through font-sans">${listing.originalPrice}</span>
-              )}
-              <span className="font-sans text-2xl font-bold text-brand-secondary">
-                ${listing.discountedPrice}
-              </span>
-              {discount > 0 && (
-                <span className="bg-brand-primary/10 text-brand-primary text-sm font-semibold px-2 py-0.5 rounded">
-                  {discount}% OFF
-                </span>
-              )}
-            </div>
-            <span className="text-brand-muted font-sans text-sm">
-              Available {formatTime(listing.appointmentTime)}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-3 mt-8">
-            <motion.button
-              type="button"
-              onClick={handleBook}
-              whileTap={{ scale: 0.97 }}
-              whileHover={{ y: -2 }}
-              transition={{ duration: 0.15 }}
-              className="px-8 py-3 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors font-sans shadow-md hover:shadow-lg"
-            >
-              Book now
-            </motion.button>
-            {listing.instagramUrl && (
-              <motion.a
-                href={listing.instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileTap={{ scale: 0.97 }}
-                whileHover={{ y: -2 }}
-                transition={{ duration: 0.15 }}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-brand-secondary font-medium hover:border-brand-primary hover:text-brand-primary transition-colors font-sans shadow-sm hover:shadow-md"
-              >
-                <Instagram className="w-5 h-5" /> Instagram
-              </motion.a>
-            )}
+          <div className="flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-400 fill-current" />
+            <span className="font-sans font-medium text-zinc-900">{listing.rating ?? 4.5} ({listing.reviews ?? 0} reviews)</span>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+
+        {listing.location?.address && (
+          <div className="flex flex-wrap gap-4 items-center text-zinc-600 font-sans text-sm mb-6">
+            <span className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              {suburb} · {listing.location.address}
+            </span>
+          </div>
+        )}
+
+        {listing.description && (
+          <p className="font-sans text-zinc-600 leading-relaxed mb-8">{listing.description}</p>
+        )}
+
+        <div className="flex flex-wrap gap-4 items-center pt-6 border-t border-gray-200">
+          <div className="flex items-baseline gap-2">
+            {discount > 0 && <span className="text-zinc-500 line-through font-sans">${listing.originalPrice}</span>}
+            <span className="font-sans text-2xl font-bold text-zinc-900">${listing.discountedPrice}</span>
+            {discount > 0 && (
+              <span className="bg-brand-primary/20 text-brand-primary text-sm font-semibold px-2 py-0.5 rounded">{discount}% OFF</span>
+            )}
+          </div>
+          <span className="text-zinc-600 font-sans text-sm">Available {formatTime(listing.appointmentTime)}</span>
+        </div>
+
+        <div className="flex flex-wrap gap-3 mt-8">
+          <motion.button type="button" onClick={handleBook} whileTap={{ scale: 0.97 }} whileHover={{ y: -2 }} transition={{ duration: 0.15 }} className="px-8 py-3 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors font-sans shadow-md hover:shadow-lg">
+            Book now
+          </motion.button>
+          {listing.instagramUrl && (
+            <motion.a href={listing.instagramUrl} target="_blank" rel="noopener noreferrer" whileTap={{ scale: 0.97 }} whileHover={{ y: -2 }} transition={{ duration: 0.15 }} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 text-zinc-900 font-medium hover:bg-gray-50 transition-colors font-sans">
+              <Instagram className="w-5 h-5" /> Instagram
+            </motion.a>
+          )}
+        </div>
+      </GlassCard>
+    </GlassPageLayout>
   );
 };
 

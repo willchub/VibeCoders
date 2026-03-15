@@ -12,8 +12,8 @@ const HomePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-brand-accent">
-        <p className="text-brand-muted">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-zinc-500">Loading…</p>
       </div>
     );
   }
