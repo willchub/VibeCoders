@@ -1,6 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Heart, Star } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Heart, Star, Pencil } from 'lucide-react';
 import { motion } from 'motion/react';
 
 // Slight gradients per listing type — warm palette to match theme (coral/blush/brown)
@@ -14,7 +14,7 @@ const TYPE_GRADIENTS = {
 
 const getCardGradient = (type) => TYPE_GRADIENTS[type] || TYPE_GRADIENTS.default;
 
-const ListingCard = ({ listing, index = 0, onBook }) => {
+const ListingCard = ({ listing, index = 0, onBook, editHref }) => {
   const navigate = useNavigate();
   const {
     title,
@@ -26,7 +26,10 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
     appointmentTime,
     rating = 4.5,
     reviews = 0,
+    isExpired,
+    status,
   } = listing;
+  const isSold = status === 'sold';
 
   const cardGradient = getCardGradient(type);
 
@@ -69,8 +72,20 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
           alt={title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-4 left-4 bg-brand-primary text-white text-xs font-bold px-3 py-1 rounded-full">
-          {discountLabel}
+        <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
+          <span className="bg-brand-primary text-white text-xs font-bold px-3 py-1 rounded-full">
+            {discountLabel}
+          </span>
+          {isSold && (
+            <span className="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+              Sold
+            </span>
+          )}
+          {!isSold && isExpired && (
+            <span className="bg-gray-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+              Expired
+            </span>
+          )}
         </div>
         <button
           type="button"
@@ -105,9 +120,18 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
             <span className="text-xs text-brand-muted line-through">${originalPrice}</span>
             <span className="text-xl font-bold text-brand-secondary">${discountedPrice}</span>
           </div>
-          <div className="text-right">
+          <div className="text-right flex items-center gap-2">
+            {editHref && (
+              <Link
+                to={editHref}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-brand-secondary text-sm font-medium hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-colors"
+              >
+                <Pencil className="h-4 w-4" /> Edit
+              </Link>
+            )}
             <span className="block text-xs font-semibold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded">
-              {formatTime(appointmentTime)}
+              {isSold ? 'Sold' : isExpired ? 'Expired' : formatTime(appointmentTime)}
             </span>
           </div>
         </div>
