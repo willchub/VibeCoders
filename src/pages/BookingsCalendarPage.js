@@ -4,6 +4,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, List } from 'lucid
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import BookingModal from './BookingModal';
+import { useAuth } from '../contexts/AuthContext';
 import { getListings } from '../services/api';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -31,6 +32,7 @@ function formatDateKey(date) {
 }
 
 const BookingsCalendarPage = () => {
+  const { isBusiness } = useAuth();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,6 +46,7 @@ const BookingsCalendarPage = () => {
   const [selectedListingForBooking, setSelectedListingForBooking] = useState(null);
 
   const handleBookClick = (listing) => {
+    if (isBusiness) return; // businesses cannot book
     setSelectedListingForBooking(listing);
     setBookingModalOpen(true);
   };
@@ -281,13 +284,17 @@ const BookingsCalendarPage = () => {
                                 ${l.discountedPrice} (was ${l.originalPrice})
                               </span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleBookClick(l)}
-                              className="shrink-0 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-sans font-semibold text-sm hover:bg-brand-primary/90 transition-colors shadow-md border border-white/20"
-                            >
-                              Book now
-                            </button>
+                            {isBusiness ? (
+                              <span className="shrink-0 text-xs text-brand-muted font-sans">Business accounts cannot book</span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleBookClick(l)}
+                                className="shrink-0 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-sans font-semibold text-sm hover:bg-brand-primary/90 transition-colors shadow-md border border-white/20"
+                              >
+                                Book now
+                              </button>
+                            )}
                           </div>
                         </li>
                       ))}
@@ -323,13 +330,17 @@ const BookingsCalendarPage = () => {
                               ${l.discountedPrice} (was ${l.originalPrice})
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleBookClick(l)}
-                            className="shrink-0 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-sans font-semibold text-sm hover:bg-brand-primary/90 transition-colors shadow-md border border-white/20"
-                          >
-                            Book now
-                          </button>
+                          {isBusiness ? (
+                            <span className="shrink-0 text-xs text-brand-muted font-sans">Business accounts cannot book</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleBookClick(l)}
+                              className="shrink-0 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-sans font-semibold text-sm hover:bg-brand-primary/90 transition-colors shadow-md border border-white/20"
+                            >
+                              Book now
+                            </button>
+                          )}
                         </div>
                       </li>
                     );

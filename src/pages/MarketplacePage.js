@@ -10,6 +10,7 @@ import ListingCard from '../components/marketplace/ListingCard';
 import StoresMapView from '../components/map/StoresMapView';
 import BookingModal from './BookingModal';
 import SearchAutocomplete from '../components/common/SearchAutocomplete';
+import { useAuth } from '../contexts/AuthContext';
 import { getListings, searchListings } from '../services/api';
 import { searchAddressSuggestions } from '../services/geocode';
 
@@ -20,6 +21,7 @@ const VIEW_MAP = 'map';
 const MarketplacePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isBusiness } = useAuth();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState(null);
@@ -49,15 +51,17 @@ const MarketplacePage = () => {
     fetchListings();
   }, []);
 
-  // Open booking modal when navigating from detail page with "Book now"
+  // Open booking modal when navigating from detail page with "Book now" (only for customers)
   useEffect(() => {
     const toBook = location.state?.openBooking;
-    if (toBook) {
+    if (toBook && !isBusiness) {
       setSelectedListing(toBook);
       setIsModalOpen(true);
+    }
+    if (toBook) {
       navigate(location.pathname, { replace: true, state: {} }); // clear state
     }
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, navigate, isBusiness]);
 
   const handleSearch = useCallback(async () => {
     setSearchLoading(true);
@@ -94,6 +98,7 @@ const MarketplacePage = () => {
 
 
   const handleBookClick = (listing) => {
+    if (isBusiness) return; // businesses cannot book
     setSelectedListing(listing);
     setIsModalOpen(true);
   };

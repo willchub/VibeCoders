@@ -294,6 +294,7 @@ const SellerDashboardPage = () => {
             <label htmlFor="listing-type" className="block text-sm font-medium text-zinc-700 mb-1">Category</label>
             <select id="listing-type" name="type" value={form.type} onChange={handleChange} className={selectClass}>
               {LISTING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="listing-original" className="block text-sm font-medium text-brand-secondary mb-1">
@@ -438,6 +439,7 @@ const SellerDashboardPage = () => {
                 </button>
               )}
             </div>
+          </div>
           </form>
       </GlassCard>
 
