@@ -4,6 +4,7 @@ import { Search, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
+import MarketplaceHero from '../components/ui/MarketplaceHero';
 import ListingCard from '../components/marketplace/ListingCard';
 import StoresMapView from '../components/map/StoresMapView';
 import BookingModal from './BookingModal';
@@ -110,70 +111,50 @@ const MarketplacePage = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      {/* Hero Section */}
-      <header className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-visible">
-        <img
-          src="https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=2940&auto=format&fit=crop"
-          alt="Modern salon interior"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-brand-secondary/40 backdrop-brightness-75" />
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 text-center px-4 max-w-3xl"
+      <MarketplaceHero>
+        <form
+          className="bg-white/95 backdrop-blur-sm p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row gap-2 max-w-2xl border border-white/20"
+          onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
         >
-          <h1 className="font-sans text-4xl md:text-6xl font-semibold text-white mb-6 leading-tight tracking-tight">
-            Look Great, For Less.
-          </h1>
-          <p className="font-sans text-lg md:text-xl text-white/90 mb-8 font-light">
-            Grab last-minute beauty deals near you and save up to 50%.
-          </p>
-          <form
-            className="bg-white p-2 rounded-2xl md:rounded-full shadow-2xl flex flex-col md:flex-row gap-2 max-w-2xl mx-auto relative"
-            onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+          <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-gray-200 min-w-0">
+            <SearchAutocomplete
+              id="service"
+              value={searchService}
+              onChange={setSearchService}
+              suggestions={serviceSuggestions}
+              placeholder="Service (e.g. Balayage)"
+              icon={Search}
+              onSubmit={handleSearch}
+              aria-label="Service search"
+              minChars={1}
+              maxSuggestions={8}
+            />
+          </div>
+          <div className="flex-1 flex items-center px-4 py-2 min-w-0">
+            <SearchAutocomplete
+              id="location"
+              value={searchLocation}
+              onChange={setSearchLocation}
+              fetchSuggestions={searchAddressSuggestions}
+              placeholder="Location (e.g. Melbourne, Los Angeles)"
+              icon={MapPin}
+              onSubmit={handleSearch}
+              aria-label="Location search"
+              minChars={2}
+              maxSuggestions={8}
+            />
+          </div>
+          <motion.button
+            type="submit"
+            disabled={searchLoading}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.1 }}
+            className="bg-white text-zinc-900 px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-zinc-100 transition-all disabled:opacity-70 shadow-md hover:shadow-lg border border-white/20"
           >
-            <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-gray-100 min-w-0">
-              <SearchAutocomplete
-                id="service"
-                value={searchService}
-                onChange={setSearchService}
-                suggestions={serviceSuggestions}
-                placeholder="Service (e.g. Balayage)"
-                icon={Search}
-                onSubmit={handleSearch}
-                aria-label="Service search"
-                minChars={1}
-                maxSuggestions={8}
-              />
-            </div>
-            <div className="flex-1 flex items-center px-4 py-2 min-w-0">
-              <SearchAutocomplete
-                id="location"
-                value={searchLocation}
-                onChange={setSearchLocation}
-                fetchSuggestions={searchAddressSuggestions}
-                placeholder="Location (e.g. Melbourne, Los Angeles)"
-                icon={MapPin}
-                onSubmit={handleSearch}
-                aria-label="Location search"
-                minChars={2}
-                maxSuggestions={8}
-              />
-            </div>
-            <motion.button
-              type="submit"
-              disabled={searchLoading}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.1 }}
-              className="bg-brand-primary text-white px-8 py-3 rounded-xl md:rounded-full font-semibold hover:bg-opacity-90 transition-all disabled:opacity-70 shadow-md hover:shadow-lg"
-            >
-              {searchLoading ? 'Searching…' : 'Search'}
-            </motion.button>
-          </form>
-        </motion.div>
-      </header>
+            {searchLoading ? 'Searching…' : 'Search'}
+          </motion.button>
+        </form>
+      </MarketplaceHero>
 
       {/* Category Filters */}
       <section className="py-8 bg-white border-b border-gray-100 overflow-x-auto hide-scrollbar">
