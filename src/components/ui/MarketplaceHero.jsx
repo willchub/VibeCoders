@@ -7,11 +7,12 @@ const StatItem = ({ value, label }) => (
   <div className="flex flex-col items-center justify-center transition-transform hover:-translate-y-1 cursor-default">
     <span className="text-xl font-bold text-zinc-900 sm:text-2xl">{value}</span>
     <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium sm:text-xs">{label}</span>
+    <div className="mt-2 w-full max-w-[3rem] h-px bg-gray-200" />
   </div>
 );
 
 // Beauty/salon-style “brands” for marquee
-const PARTNERS = [
+const FALLBACK_PARTNERS = [
   { name: 'The Dapper Barber', icon: Scissors },
   { name: 'Nails by Chloe', icon: Gem },
   { name: 'Zenith Yoga', icon: Heart },
@@ -20,7 +21,31 @@ const PARTNERS = [
   { name: 'Glow Bar', icon: Star },
 ];
 
-export default function MarketplaceHero({ children }) {
+const MARQUEE_ICONS = [Scissors, Gem, Heart, CircleDot, Sparkles, Star];
+
+const TYPE_TO_ICON = {
+  Salon: Gem,
+  Barbershop: Scissors,
+  'Gym Class': Heart,
+  Physio: CircleDot,
+};
+
+export default function MarketplaceHero({ children, stats, loading }) {
+  const avgSavings = stats?.avgSavingsPercent ?? 50;
+  const availableSlots = stats?.availableSlots ?? 0;
+  const localSalons = stats?.localSalons ?? 0;
+  const livePercent = stats?.livePercent ?? 0;
+  const hasLiveData = stats && (stats.availableSlots > 0 || stats.localSalons > 0);
+
+  const marqueeItems = (stats?.sellers?.length > 0)
+    ? stats.sellers.map((item) => {
+        const name = typeof item === 'string' ? item : item.name;
+        const type = typeof item === 'string' ? null : item.type;
+        const icon = (type && TYPE_TO_ICON[type]) || Sparkles;
+        return { name, icon };
+      })
+    : FALLBACK_PARTNERS;
+
   return (
     <div className="relative w-full bg-white text-zinc-900 overflow-hidden font-sans">
       <style>{`
@@ -60,15 +85,6 @@ export default function MarketplaceHero({ children }) {
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-8 items-start">
           {/* Left column: headline + search form */}
           <div className="lg:col-span-7 flex flex-col justify-center space-y-8 pt-8">
-            <div className="animate-fade-in delay-100">
-              <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100/90 px-3 py-1.5 backdrop-blur-md transition-colors hover:bg-gray-200/80">
-                <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-600 flex items-center gap-2">
-                  Last-Minute Deals
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                </span>
-              </div>
-            </div>
-
             <h1
               className="animate-fade-in delay-200 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-medium tracking-tighter leading-[0.9] text-zinc-900"
               style={{
@@ -101,45 +117,42 @@ export default function MarketplaceHero({ children }) {
                     <Sparkles className="h-6 w-6 text-brand-secondary" />
                   </div>
                   <div>
-                    <div className="text-3xl font-bold tracking-tight text-zinc-900">50%+</div>
+                    <div className="text-3xl font-bold tracking-tight text-zinc-900">
+                      {loading ? '—' : hasLiveData ? `${avgSavings}%+` : '50%+'}
+                    </div>
                     <div className="text-sm text-zinc-500">Off Last-Minute</div>
                   </div>
                 </div>
                 <div className="space-y-3 mb-8">
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-500">Booked Today</span>
-                    <span className="text-zinc-900 font-medium">98%</span>
+                    <span className="text-zinc-500">Live slots</span>
+                    <span className="text-zinc-900 font-medium">
+                      {loading ? '—' : `${availableSlots} available`}
+                    </span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-                    <div className="h-full w-[98%] rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary" />
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary transition-all duration-500"
+                      style={{ width: loading ? '0%' : `${Math.max(5, livePercent)}%` }}
+                    />
                   </div>
                 </div>
                 <div className="h-px w-full bg-gray-200 mb-6" />
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <StatItem value="50%+" label="Savings" />
-                  <div className="w-px h-full bg-gray-200 mx-auto" />
-                  <StatItem value="Local" label="Salons" />
-                  <div className="w-px h-full bg-gray-200 mx-auto" />
-                  <StatItem value="Today" label="Slots" />
-                </div>
-                <div className="mt-8 flex flex-wrap gap-2">
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-medium tracking-wide text-zinc-600">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                    </span>
-                    LIVE
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-medium tracking-wide text-zinc-600">
-                    <Star className="w-3 h-3 text-amber-500" />
-                    TRUSTED
-                  </div>
+                <div className="grid grid-cols-3 gap-4 text-center items-end">
+                  <StatItem
+                    value={loading ? '—' : (hasLiveData ? `${avgSavings}%+` : '50%+')}
+                    label="Savings"
+                  />
+                  <StatItem value={loading ? '—' : String(localSalons)} label="Salons" />
+                  <StatItem value={loading ? '—' : String(availableSlots)} label="Slots" />
                 </div>
               </div>
             </div>
 
             <div className="animate-fade-in delay-500 relative overflow-hidden rounded-3xl border border-gray-200 bg-white/95 py-8 backdrop-blur-xl shadow-xl">
-              <h3 className="mb-6 px-8 text-sm font-medium text-zinc-500">Trusted by local salons & studios</h3>
+              <h3 className="mb-6 px-8 text-sm font-medium text-zinc-500">
+                {marqueeItems === FALLBACK_PARTNERS ? 'Trusted by local salons & studios' : 'Companies with available bookings'}
+              </h3>
               <div
                 className="relative flex overflow-hidden"
                 style={{
@@ -148,15 +161,15 @@ export default function MarketplaceHero({ children }) {
                 }}
               >
                 <div className="animate-marquee flex gap-12 whitespace-nowrap px-4">
-                  {[...PARTNERS, ...PARTNERS, ...PARTNERS].map((partner, i) => {
-                    const Icon = partner.icon;
+                  {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((item, i) => {
+                    const Icon = item.icon;
                     return (
                       <div
-                        key={`${partner.name}-${i}`}
+                        key={`${item.name}-${i}`}
                         className="flex items-center gap-2 opacity-60 transition-all hover:opacity-100 hover:scale-105 cursor-default text-zinc-600 hover:text-zinc-900"
                       >
-                        <Icon className="h-6 w-6 fill-current" />
-                        <span className="text-lg font-bold tracking-tight">{partner.name}</span>
+                        <Icon className="h-6 w-6 fill-current shrink-0" />
+                        <span className="text-lg font-bold tracking-tight">{item.name}</span>
                       </div>
                     );
                   })}

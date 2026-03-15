@@ -129,6 +129,37 @@ const MarketplacePage = () => {
       ? baseList
       : baseList.filter((listing) => listing.type === activeCategory);
 
+  // Live stats for hero panel (from current marketplace listings)
+  const heroStats = useMemo(() => {
+    if (!listings.length) {
+      return {
+        avgSavingsPercent: null,
+        availableSlots: 0,
+        localSalons: 0,
+        livePercent: 0,
+        sellers: [],
+      };
+    }
+    const totalSavings = listings.reduce((acc, l) => {
+      const pct = l.originalPrice > 0 ? ((l.originalPrice - l.discountedPrice) / l.originalPrice) * 100 : 0;
+      return acc + pct;
+    }, 0);
+    const avgSavings = totalSavings / listings.length;
+    const livePercent = Math.min(100, Math.round((listings.length / 12) * 100));
+    const sellerToType = new Map();
+    listings.forEach((l) => {
+      if (l.seller && !sellerToType.has(l.seller)) sellerToType.set(l.seller, l.type || 'Salon');
+    });
+    const sellers = [...sellerToType.entries()].map(([name, type]) => ({ name, type }));
+    return {
+      avgSavingsPercent: Math.ceil(avgSavings),
+      availableSlots: listings.length,
+      localSalons: sellers.length,
+      livePercent,
+      sellers,
+    };
+  }, [listings]);
+
   // Autocomplete suggestions from listings
   const serviceSuggestions = useMemo(() => {
     const seen = new Set();
@@ -162,7 +193,7 @@ const MarketplacePage = () => {
     <div className="min-h-screen flex flex-col bg-white text-zinc-900">
       <Header variant="light" />
 
-      <MarketplaceHero>
+      <MarketplaceHero stats={heroStats} loading={loading}>
         <form
           className="bg-white backdrop-blur-sm p-2 rounded-2xl md:rounded-full shadow-xl flex flex-col md:flex-row gap-2 max-w-2xl border border-gray-200"
           onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
