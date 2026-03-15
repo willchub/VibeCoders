@@ -23,14 +23,15 @@ function setMockUsers(users) {
 }
 
 /**
- * Sign up with email and password. Enforces one account per email.
- * role: 'customer' | 'business'.
+ * Sign up with email and password. Optional username for sign-in by username later.
+ * Enforces one account per email.
  * @returns {{ user, session, error }}
  */
-export const signUp = async ({ email, password, name, role = 'customer' }) => {
+export const signUp = async ({ email, password, name, role = 'customer', username = '' }) => {
   const safeRole = role === 'business' ? 'business' : 'customer';
   const safeEmail = (email || '').trim().toLowerCase();
   const safeName = (name || '').trim();
+  const safeUsername = (username || '').trim();
 
   if (!isSupabaseConfigured()) {
     const users = getMockUsers();
@@ -43,12 +44,12 @@ export const signUp = async ({ email, password, name, role = 'customer' }) => {
     const mockUser = {
       id: `mock-${Date.now()}`,
       email: safeEmail,
-      user_metadata: { full_name: name, role: safeRole },
+      user_metadata: { full_name: name, role: safeRole, username: safeUsername || undefined },
     };
     const session = { user: mockUser };
     setMockUsers([
       ...users,
-      { id: mockUser.id, email: safeEmail, password, full_name: name, role: safeRole },
+      { id: mockUser.id, email: safeEmail, username: safeUsername || null, password, full_name: name, role: safeRole },
     ]);
     localStorage.setItem(MOCK_SESSION_KEY, JSON.stringify({ user: mockUser }));
     const roles = JSON.parse(localStorage.getItem(MOCK_ROLES_KEY) || '{}');
@@ -72,7 +73,10 @@ export const signUp = async ({ email, password, name, role = 'customer' }) => {
   const { data, error } = await supabase.auth.signUp({
     email: safeEmail,
     password,
-    options: { data: { full_name: safeName || name, role: safeRole } },
+    options: {
+      data: { full_name: safeName || name, role: safeRole },
+      emailRedirectTo: typeof window !== 'undefined' ? window.location.origin + '/login' : undefined,
+    },
   });
   if (error) {
     const msg = error.message || '';
@@ -81,45 +85,71 @@ export const signUp = async ({ email, password, name, role = 'customer' }) => {
     }
     return { user: data?.user, session: data?.session, error };
   }
-  if (data?.user && safeRole === 'business') {
+  if (data?.user) {
     try {
       await supabase.from('profiles').update({ role: safeRole }).eq('id', data.user.id);
     } catch (_) {}
+    try {
+      await supabase.from('profiles').upsert(
+        {
+          id: data.user.id,
+          email: safeEmail,
+          ...(safeUsername ? { username: safeUsername } : {}),
+        },
+        { onConflict: 'id' }
+      );
+    } catch (_) {}
   }
-  return { user: data?.user, session: data?.session, error: null };
+  const session = data?.session ?? null;
+  const needsEmailConfirmation = !!(data?.user && !session);
+  return { user: data?.user, session, error: null, needsEmailConfirmation };
 };
 
 /**
- * Sign in with email and password.
- * @returns {{ user, session, error }}
+ * Sign in with email or username and password.
+ * @param {{ email?: string, identifier?: string, password: string }} - use identifier (email or username) or email
  */
-export const signIn = async ({ email, password }) => {
-  const safeEmail = (email || '').trim().toLowerCase();
-  if (!safeEmail || !password) {
-    return { user: null, session: null, error: { message: 'Please enter email and password.' } };
+export const signIn = async ({ email, identifier, password }) => {
+  const id = (identifier ?? email ?? '').trim();
+  if (!id || !password) {
+    return { user: null, session: null, error: { message: 'Please enter your email/username and password.' } };
   }
 
   if (!isSupabaseConfigured()) {
     const users = getMockUsers();
-    const userRow = users.find((u) => (u.email || '').toLowerCase() === safeEmail);
+    const byEmail = id.includes('@')
+      ? users.find((u) => (u.email || '').toLowerCase() === id.toLowerCase())
+      : null;
+    const byUsername = byEmail ? null : users.find((u) => (u.username || '').toLowerCase() === id.toLowerCase());
+    const userRow = byEmail || byUsername;
     if (!userRow || userRow.password !== password) {
-      return { user: null, session: null, error: { message: 'Invalid email or password.' } };
+      return { user: null, session: null, error: { message: 'Invalid email/username or password.' } };
     }
     const roles = JSON.parse(localStorage.getItem(MOCK_ROLES_KEY) || '{}');
     const role = roles[userRow.email] || userRow.role || 'customer';
     const mockUser = {
       id: userRow.id,
       email: userRow.email,
-      user_metadata: { full_name: userRow.full_name, role },
+      user_metadata: { full_name: userRow.full_name, role, username: userRow.username },
     };
     const session = { user: mockUser };
     localStorage.setItem(MOCK_SESSION_KEY, JSON.stringify({ user: mockUser }));
     return { user: mockUser, session, error: null };
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email: safeEmail, password });
+  let loginEmail = id.includes('@') ? id.toLowerCase() : null;
+  if (!loginEmail) {
+    const { data: profile } = await supabase.from('profiles').select('email').eq('username', id).maybeSingle();
+    if (profile?.email) loginEmail = profile.email;
+  }
+  if (!loginEmail && !id.includes('@')) {
+    return { user: null, session: null, error: { message: 'No account found with that username. Try signing in with your email.' } };
+  }
+  if (!loginEmail) loginEmail = id.toLowerCase();
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
   if (error) {
-    return { user: null, session: null, error: { message: error.message || 'Invalid email or password.' } };
+    return { user: null, session: null, error: { message: error.message || 'Invalid email/username or password.' } };
   }
   return { user: data?.user, session: data?.session, error: null };
 };
