@@ -14,6 +14,7 @@ const RegisterPage = () => {
   const [role, setRole] = useState(ROLE_CUSTOMER);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -40,11 +41,12 @@ const RegisterPage = () => {
     }
     setLoading(true);
     try {
-      const { user, session: newSession, error: authError } = await signUp({
+      const { user, session: newSession, error: authError, needsEmailConfirmation } = await signUp({
         email: email.trim(),
         password,
         name: name.trim(),
         role,
+        username: username.trim() || undefined,
       });
       if (authError) {
         const msg = authError.message || 'Registration failed.';
@@ -58,6 +60,10 @@ const RegisterPage = () => {
         return;
       }
       if (user) {
+        if (needsEmailConfirmation) {
+          navigate('/login?message=confirm', { replace: true });
+          return;
+        }
         setSessionFromAuth(newSession || { user });
         if (role === ROLE_BUSINESS) navigate('/seller-dashboard');
         else navigate('/marketplace');

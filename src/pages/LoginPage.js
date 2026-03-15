@@ -9,6 +9,7 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const { setSessionFromAuth } = useAuth();
   const redirectTo = searchParams.get('redirect') || '/marketplace';
+  const confirmMessage = searchParams.get('message') === 'confirm';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -47,6 +48,11 @@ const LoginPage = () => {
   return (
     <GlassPageLayout title="Sign in" subtitle="Welcome back. Sign in to book deals and manage your account." maxWidth="max-w-md">
       <GlassCard>
+        {confirmMessage && (
+          <p className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2" role="status">
+            Account created. Check your email and click the confirmation link, then sign in below.
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="login-email" className="block text-sm font-medium text-zinc-700 mb-1">Email</label>
