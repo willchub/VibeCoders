@@ -18,11 +18,15 @@ const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [errorEmail, setErrorEmail] = useState('');
+  const [errorName, setErrorName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setErrorEmail('');
+    setErrorName('');
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setError('Please fill in all fields.');
       return;
@@ -44,7 +48,14 @@ const RegisterPage = () => {
         role,
       });
       if (authError) {
-        setError(authError.message || 'Registration failed.');
+        const msg = authError.message || 'Registration failed.';
+        if (msg.includes('email') && msg.toLowerCase().includes('already')) {
+          setErrorEmail('This email is already registered.');
+        } else if (msg.includes('name') && msg.toLowerCase().includes('already')) {
+          setErrorName('This name is already registered.');
+        } else {
+          setError(msg);
+        }
         return;
       }
       if (user) {
@@ -116,10 +127,15 @@ const RegisterPage = () => {
                 type="text"
                 autoComplete="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setErrorName(''); }}
                 placeholder={role === ROLE_BUSINESS ? 'e.g. The Dapper Barber' : 'Jane Doe'}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
               />
+              {errorName && (
+                <p className="mt-1 text-xs text-red-500" role="alert">
+                  {errorName}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="register-email" className="block text-sm font-medium text-brand-secondary mb-1">
@@ -130,10 +146,15 @@ const RegisterPage = () => {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setErrorEmail(''); }}
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
               />
+              {errorEmail && (
+                <p className="mt-1 text-xs text-red-500" role="alert">
+                  {errorEmail}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="register-password" className="block text-sm font-medium text-brand-secondary mb-1">
