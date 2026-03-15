@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PlusCircle, MapPin, Image, Instagram } from 'lucide-react';
-import Header from '../components/common/Header';
-import Footer from '../components/common/Footer';
+import { PlusCircle, MapPin } from 'lucide-react';
+import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
 import LocationPicker from '../components/map/LocationPicker';
 import { useAuth } from '../contexts/AuthContext';
-import { getMyListings, saveStoreLocation, createListing, getBusinessProfile, updateBusinessProfile } from '../services/api';
+import { getMyListings, saveStoreLocation, createListing, ensureProfileExists, getBusinessProfile, updateBusinessProfile } from '../services/api';
 
 const LISTING_TYPES = ['Barbershop', 'Gym Class', 'Salon', 'Physio'];
 
@@ -103,6 +102,7 @@ const SellerDashboardPage = () => {
       return;
     }
     try {
+      await ensureProfileExists(user.id, user.user_metadata?.full_name ?? user.user_metadata?.name ?? '');
       await createListing(
         {
           ...form,
@@ -173,274 +173,128 @@ const SellerDashboardPage = () => {
     }
   };
 
+  const inputClass = 'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-zinc-900 placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary outline-none';
+  const selectClass = 'w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-zinc-900 focus:ring-2 focus:ring-brand-primary/30 outline-none';
+
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="max-w-md mx-auto px-4 py-16 flex-grow flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-            <h2 className="text-xl font-semibold text-brand-secondary mb-2">Sign in required</h2>
-            <p className="text-brand-muted text-sm mb-6">Only business accounts can add and manage listings. Sign in or register as a business.</p>
-            <div className="flex gap-3 justify-center">
-              <Link to="/login" className="px-5 py-2.5 rounded-xl bg-brand-primary text-white font-medium hover:bg-brand-primary/90">Sign in</Link>
-              <Link to="/register" className="px-5 py-2.5 rounded-xl border border-gray-200 text-brand-secondary font-medium hover:bg-gray-50">Register</Link>
-            </div>
+      <GlassPageLayout title="Sign in required" maxWidth="max-w-md">
+        <GlassCard className="text-center">
+          <p className="text-zinc-600 text-sm mb-6">Only business accounts can add and manage listings. Sign in or register as a business.</p>
+          <div className="flex gap-3 justify-center">
+            <Link to="/login" className="px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-medium hover:bg-zinc-100">Sign in</Link>
+            <Link to="/register" className="px-5 py-2.5 rounded-xl border border-gray-200 text-zinc-900 font-medium hover:bg-gray-50">Register</Link>
           </div>
-        </main>
-        <Footer />
-      </div>
+        </GlassCard>
+      </GlassPageLayout>
     );
   }
 
   if (!isBusiness) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="max-w-md mx-auto px-4 py-16 flex-grow flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-            <h2 className="text-xl font-semibold text-brand-secondary mb-2">Business account required</h2>
-            <p className="text-brand-muted text-sm mb-6">Only business or admin accounts can add listings and see this dashboard. Register as a business to get started.</p>
-            <Link to="/marketplace" className="inline-block px-5 py-2.5 rounded-xl bg-brand-primary text-white font-medium hover:bg-brand-primary/90">Back to marketplace</Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <GlassPageLayout title="Business account required" maxWidth="max-w-md">
+        <GlassCard className="text-center">
+          <p className="text-zinc-600 text-sm mb-6">Only business or admin accounts can add listings and see this dashboard. Register as a business to get started.</p>
+          <Link to="/marketplace" className="inline-block px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-medium hover:bg-zinc-100">Back to marketplace</Link>
+        </GlassCard>
+      </GlassPageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="max-w-2xl mx-auto px-4 py-12 flex-grow w-full">
-
-        {/* Create listing */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
-          <h2 className="font-sans text-lg font-semibold text-brand-secondary mb-1 flex items-center gap-2">
-            <PlusCircle className="h-5 w-5 text-brand-primary" />
-            Create a listing
-          </h2>
-          <p className="font-sans text-brand-muted text-sm mb-6">
-            Fill in the details below to post a last-minute deal. It will appear on the marketplace.
-          </p>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg" role="alert">
-                {error}
-              </p>
-            )}
-            {success && (
-              <p className="text-sm text-green-700 bg-green-50 px-3 py-2 rounded-lg" role="status">
-                {success}
-              </p>
-            )}
-            <div>
-              <label htmlFor="listing-title" className="block text-sm font-medium text-brand-secondary mb-1">
-                Service title
-              </label>
-              <input
-                id="listing-title"
-                name="title"
-                type="text"
-                value={form.title}
-                onChange={handleChange}
-                placeholder="e.g. Last-Minute Men's Haircut"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="listing-seller" className="block text-sm font-medium text-brand-secondary mb-1">
-                Business / your name
-              </label>
-              <input
-                id="listing-seller"
-                name="seller"
-                type="text"
-                value={form.seller}
-                onChange={handleChange}
-                placeholder="e.g. The Dapper Barber"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="listing-type" className="block text-sm font-medium text-brand-secondary mb-1">
-                Category
-              </label>
-              <select
-                id="listing-type"
-                name="type"
-                value={form.type}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
-              >
-                {LISTING_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="listing-original" className="block text-sm font-medium text-brand-secondary mb-1">
-                  Original price ($)
-                </label>
-                <input
-                  id="listing-original"
-                  name="originalPrice"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.originalPrice}
-                  onChange={handleChange}
-                  placeholder="40"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-                />
-              </div>
-              <div>
-                <label htmlFor="listing-discounted" className="block text-sm font-medium text-brand-secondary mb-1">
-                  Discounted price ($)
-                </label>
-                <input
-                  id="listing-discounted"
-                  name="discountedPrice"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.discountedPrice}
-                  onChange={handleChange}
-                  placeholder="25"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label htmlFor="listing-image" className="block text-sm font-medium text-brand-secondary mb-1">
-                Image URL
-              </label>
-              <input
-                id="listing-image"
-                name="imageUrl"
-                type="url"
-                value={form.imageUrl}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-              />
-              <p className="mt-1 text-xs text-brand-muted">Optional. Leave blank for a default image.</p>
-            </div>
-            <div>
-              <label htmlFor="listing-time" className="block text-sm font-medium text-brand-secondary mb-1">
-                Appointment date & time
-              </label>
-              <input
-                id="listing-time"
-                name="appointmentTime"
-                type="datetime-local"
-                value={form.appointmentTime}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
-              />
-            </div>
-            <div>
-              <label htmlFor="listing-location-preset" className="block text-sm font-medium text-brand-secondary mb-1">
-                Location
-              </label>
-              <select
-                id="listing-location-preset"
-                value={PRESET_LOCATIONS.find((p) => p.lat === form.location?.lat && p.lng === form.location?.lng)?.id || (form.location ? 'custom' : '')}
-                onChange={(e) => {
-                  const preset = PRESET_LOCATIONS.find((p) => p.id === e.target.value);
-                  setForm((prev) => ({
-                    ...prev,
-                    location: preset && preset.lat != null ? { lat: preset.lat, lng: preset.lng, address: preset.address } : prev.location,
-                  }));
-                  setError('');
-                  setSuccess('');
-                }}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
-              >
-                <option value="">— Select a location —</option>
-                {PRESET_LOCATIONS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-brand-muted">Optional. Choose a preset or pick on the map below.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-brand-secondary mb-1">Pick exact spot on map</label>
-              <LocationPicker
-                value={form.location}
-                onChange={(loc) => {
-                  setForm((prev) => ({ ...prev, location: loc }));
-                  setError('');
-                  setSuccess('');
-                }}
-                height="320px"
-                placeholder="Search address or click map..."
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors"
-            >
-              Create listing
-            </button>
-          </form>
-        </div>
-
-        {/* Set store location */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <h2 className="font-sans text-lg font-semibold text-brand-secondary mb-1 flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-brand-primary" />
-            Set store location
-          </h2>
-          <p className="font-sans text-brand-muted text-sm mb-6">
-            Choose an existing listing and set its location so users can find you on the map.
-          </p>
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-brand-secondary">
-              Select store
-            </label>
-            <select
-              value={selectedId ?? ''}
-              onChange={(e) => setSelectedId(e.target.value || null)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none bg-white"
-            >
-              <option value="">— Select a store —</option>
-              {listings.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.seller} – {l.title}
-                </option>
-              ))}
+    <GlassPageLayout title="Seller dashboard" subtitle="Create listings and set store locations." maxWidth="max-w-2xl">
+      <GlassCard className="mb-8">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1 flex items-center gap-2">
+          <PlusCircle className="h-5 w-5 text-brand-primary" />
+          Create a listing
+        </h2>
+        <p className="text-zinc-600 text-sm mb-6">Fill in the details below to post a last-minute deal. It will appear on the marketplace.</p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && <p className="text-sm text-red-400 bg-red-500/20 px-3 py-2 rounded-lg" role="alert">{error}</p>}
+          {success && <p className="text-sm text-green-300 bg-green-500/20 px-3 py-2 rounded-lg" role="status">{success}</p>}
+          <div>
+            <label htmlFor="listing-title" className="block text-sm font-medium text-zinc-700 mb-1">Service title</label>
+            <input id="listing-title" name="title" type="text" value={form.title} onChange={handleChange} placeholder="e.g. Last-Minute Men's Haircut" className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="listing-seller" className="block text-sm font-medium text-zinc-700 mb-1">Business / your name</label>
+            <input id="listing-seller" name="seller" type="text" value={form.seller} onChange={handleChange} placeholder="e.g. The Dapper Barber" className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="listing-type" className="block text-sm font-medium text-zinc-700 mb-1">Category</label>
+            <select id="listing-type" name="type" value={form.type} onChange={handleChange} className={selectClass}>
+              {LISTING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
-            <LocationPicker
-              value={location}
-              onChange={setLocation}
-              height="400px"
-              placeholder="Search address or click map..."
-            />
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleSaveLocation}
-                disabled={saving || !location?.lat}
-                className="py-3 px-6 rounded-xl bg-brand-primary text-white font-semibold hover:bg-brand-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Saving...' : 'Save location'}
-              </button>
-              {message && (
-                <span className={`text-sm ${message.type === 'error' ? 'text-red-600' : 'text-green-700'}`}>
-                  {message.text}
-                </span>
-              )}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="listing-original" className="block text-sm font-medium text-zinc-700 mb-1">Original price ($)</label>
+              <input id="listing-original" name="originalPrice" type="number" min="0" step="1" value={form.originalPrice} onChange={handleChange} placeholder="40" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="listing-discounted" className="block text-sm font-medium text-zinc-700 mb-1">Discounted price ($)</label>
+              <input id="listing-discounted" name="discountedPrice" type="number" min="0" step="1" value={form.discountedPrice} onChange={handleChange} placeholder="25" className={inputClass} />
             </div>
           </div>
+          <div>
+            <label htmlFor="listing-image" className="block text-sm font-medium text-zinc-700 mb-1">Image URL</label>
+            <input id="listing-image" name="imageUrl" type="url" value={form.imageUrl} onChange={handleChange} placeholder="https://..." className={inputClass} />
+            <p className="mt-1 text-xs text-zinc-500">Optional. Leave blank for a default image.</p>
+          </div>
+          <div>
+            <label htmlFor="listing-time" className="block text-sm font-medium text-zinc-700 mb-1">Appointment date & time</label>
+            <input id="listing-time" name="appointmentTime" type="datetime-local" value={form.appointmentTime} onChange={handleChange} className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor="listing-location-preset" className="block text-sm font-medium text-zinc-700 mb-1">Location</label>
+            <select
+              id="listing-location-preset"
+              value={PRESET_LOCATIONS.find((p) => p.lat === form.location?.lat && p.lng === form.location?.lng)?.id || (form.location ? 'custom' : '')}
+              onChange={(e) => {
+                const preset = PRESET_LOCATIONS.find((p) => p.id === e.target.value);
+                setForm((prev) => ({ ...prev, location: preset && preset.lat != null ? { lat: preset.lat, lng: preset.lng, address: preset.address } : prev.location }));
+                setError('');
+                setSuccess('');
+              }}
+              className={selectClass}
+            >
+              <option value="">— Select a location —</option>
+              {PRESET_LOCATIONS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+            <p className="mt-1 text-xs text-zinc-500">Optional. Choose a preset or pick on the map below.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Pick exact spot on map</label>
+            <LocationPicker value={form.location} onChange={(loc) => { setForm((prev) => ({ ...prev, location: loc })); setError(''); setSuccess(''); }} height="320px" placeholder="Search address or click map..." />
+          </div>
+          <button type="submit" className="w-full py-3 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors">
+            Create listing
+          </button>
+        </form>
+      </GlassCard>
+
+      <GlassCard>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1 flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-brand-primary" />
+          Set store location
+        </h2>
+        <p className="text-zinc-600 text-sm mb-6">Choose an existing listing and set its location so users can find you on the map.</p>
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-zinc-700">Select store</label>
+          <select value={selectedId ?? ''} onChange={(e) => setSelectedId(e.target.value || null)} className={selectClass}>
+            <option value="">— Select a store —</option>
+            {listings.map((l) => <option key={l.id} value={l.id}>{l.seller} – {l.title}</option>)}
+          </select>
+          <LocationPicker value={location} onChange={setLocation} height="400px" placeholder="Search address or click map..." />
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={handleSaveLocation} disabled={saving || !location?.lat} className="py-3 px-6 rounded-xl bg-white text-zinc-950 font-semibold hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              {saving ? 'Saving...' : 'Save location'}
+            </button>
+            {message && <span className={`text-sm ${message.type === 'error' ? 'text-red-400' : 'text-green-300'}`}>{message.text}</span>}
+          </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </GlassCard>
+    </GlassPageLayout>
   );
 };
 

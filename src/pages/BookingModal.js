@@ -252,7 +252,7 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
                       placeholder="Name on card"
                       value={form.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-zinc-900 placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
                       autoComplete="cc-name"
                     />
                   </div>
@@ -273,7 +273,7 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
                       placeholder="1234 5678 9012 3456"
                       value={form.cardNumber}
                       onChange={(e) => handleInputChange('cardNumber', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none font-mono tracking-wider"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-zinc-900 placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none font-mono tracking-wider"
                       autoComplete="cc-number"
                     />
                   </div>
@@ -289,7 +289,7 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
                         placeholder="MM/YY"
                         value={form.expiry}
                         onChange={(e) => handleInputChange('expiry', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none font-mono"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-zinc-900 placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none font-mono"
                         autoComplete="cc-exp"
                       />
                     </div>
@@ -304,7 +304,7 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
                         placeholder="123"
                         value={form.cvc}
                         onChange={(e) => handleInputChange('cvc', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none font-mono"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-zinc-900 placeholder:text-zinc-500 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none font-mono"
                         autoComplete="cc-csc"
                       />
                     </div>

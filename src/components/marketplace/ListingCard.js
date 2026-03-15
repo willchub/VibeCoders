@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, Star } from 'lucide-react';
 import { motion } from 'motion/react';
 
+// Slight gradients per listing type — warm palette to match theme (coral/blush/brown)
+const TYPE_GRADIENTS = {
+  Salon: 'bg-gradient-to-br from-rose-50 to-white',
+  Barbershop: 'bg-gradient-to-br from-amber-50 to-white',
+  'Gym Class': 'bg-gradient-to-br from-orange-50 to-white',
+  Physio: 'bg-gradient-to-br from-stone-100 to-white',
+  default: 'bg-gradient-to-br from-rose-50/80 to-white', // soft blush fallback
+};
+
+const getCardGradient = (type) => TYPE_GRADIENTS[type] || TYPE_GRADIENTS.default;
+
 const ListingCard = ({ listing, index = 0, onBook }) => {
   const navigate = useNavigate();
   const {
@@ -16,6 +27,8 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
     rating = 4.5,
     reviews = 0,
   } = listing;
+
+  const cardGradient = getCardGradient(type);
 
   const discount =
     originalPrice > 0
@@ -44,7 +57,7 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
       animate={{ opacity: 1, y: 0 }}
       whileTap={{ scale: 0.98 }}
       transition={{ delay: index * 0.1, duration: 0.2 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group cursor-pointer"
+      className={`${cardGradient} rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group cursor-pointer`}
       onClick={() => navigate(`/listing/${listing.id}`)}
       onKeyDown={(e) => e.key === 'Enter' && navigate(`/listing/${listing.id}`)}
       role="button"
@@ -72,7 +85,7 @@ const ListingCard = ({ listing, index = 0, onBook }) => {
         </button>
       </div>
 
-      <div className="p-5">
+      <div className="p-5 border-t border-white/40">
         <div className="flex justify-between items-start mb-2">
           <div>
             <p className="text-xs font-semibold text-brand-primary uppercase tracking-wider">

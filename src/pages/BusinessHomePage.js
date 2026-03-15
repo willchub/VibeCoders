@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Store, PlusCircle, LayoutGrid } from 'lucide-react';
-import Header from '../components/common/Header';
-import Footer from '../components/common/Footer';
+import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
 import ListingCard from '../components/marketplace/ListingCard';
 import BookingModal from './BookingModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,11 +27,9 @@ const BusinessHomePage = () => {
   const businessName = user?.user_metadata?.full_name || 'My business';
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+    <GlassPageLayout title={businessName} maxWidth="max-w-7xl">
+      <GlassCard className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
             {profile.logoUrl ? (
               <img
@@ -46,7 +43,7 @@ const BusinessHomePage = () => {
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-semibold text-brand-secondary">{businessName}</h1>
+              <h1 className="text-2xl font-semibold text-zinc-900">{businessName}</h1>
               {profile.instagramUrl && (
                 <a
                   href={profile.instagramUrl.startsWith('http') ? profile.instagramUrl : `https://instagram.com/${profile.instagramUrl.replace('@', '')}`}
@@ -60,26 +57,21 @@ const BusinessHomePage = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              to="/marketplace"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-brand-primary text-brand-primary font-medium hover:bg-brand-primary/5 transition-colors"
-            >
+            <Link to="/marketplace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-zinc-900 font-medium hover:bg-gray-50 transition-colors">
               <LayoutGrid className="h-5 w-5" />
               Marketplace
             </Link>
-            <Link
-              to="/seller-dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-medium hover:bg-brand-primary/90 transition-colors"
-            >
+            <Link to="/seller-dashboard" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-medium hover:bg-zinc-100 transition-colors">
               <PlusCircle className="h-5 w-5" />
               Add listing
             </Link>
           </div>
         </div>
+      </GlassCard>
 
-        {profile.photoUrls && profile.photoUrls.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-sm font-medium text-brand-muted mb-3">Business photos</h2>
+      {profile.photoUrls && profile.photoUrls.length > 0 && (
+        <GlassCard className="mb-8">
+          <h2 className="text-sm font-medium text-zinc-600 mb-3">Business photos</h2>
             <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
               {profile.photoUrls.map((url, i) => (
                 <img
@@ -90,43 +82,29 @@ const BusinessHomePage = () => {
                 />
               ))}
             </div>
-          </section>
+        </GlassCard>
+      )}
+
+      <GlassCard>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-4">Your listings</h2>
+        {loading ? (
+          <p className="text-zinc-600">Loading your listings…</p>
+        ) : listings.length === 0 ? (
+          <div className="text-center py-8">
+              <p className="text-zinc-600 mb-4">You don’t have any listings yet.</p>
+            <Link to="/seller-dashboard" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-zinc-950 font-medium hover:bg-zinc-100">
+              <PlusCircle className="h-5 w-5" />
+              Add your first listing
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {listings.map((listing, idx) => (
+              <ListingCard key={listing.id} listing={listing} index={idx} onBook={(l) => { setSelectedListing(l); setModalOpen(true); }} />
+            ))}
+          </div>
         )}
-
-        <section>
-          <h2 className="text-lg font-semibold text-brand-secondary mb-4">Your listings</h2>
-          {loading ? (
-            <p className="text-brand-muted">Loading your listings…</p>
-          ) : listings.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <p className="text-brand-muted mb-4">You don’t have any listings yet.</p>
-              <Link
-                to="/seller-dashboard"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white font-medium hover:bg-brand-primary/90"
-              >
-                <PlusCircle className="h-5 w-5" />
-                Add your first listing
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {listings.map((listing, idx) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  index={idx}
-                  onBook={(l) => {
-                    setSelectedListing(l);
-                    setModalOpen(true);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
-
-      <Footer />
+      </GlassCard>
 
       <BookingModal
         listing={selectedListing}
@@ -137,7 +115,7 @@ const BusinessHomePage = () => {
         }}
         onConfirm={() => setModalOpen(false)}
       />
-    </div>
+    </GlassPageLayout>
   );
 };
 

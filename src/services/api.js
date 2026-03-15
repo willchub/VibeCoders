@@ -46,94 +46,8 @@ const rowToListing = (row) => {
   };
 };
 
-// Mock data used when Supabase is not configured
-// Enriched with description, suburb, imageUrls (carousel), instagramUrl for detail page
-const mockListings = [
-  {
-    id: 1,
-    title: "Last-Minute Men's Haircut",
-    seller: 'The Dapper Barber',
-    type: 'Barbershop',
-    originalPrice: 40,
-    discountedPrice: 25,
-    imageUrl: 'https://images.unsplash.com/photo-1599305445671-ac28a54c44ac?q=80&w=2940&auto=format&fit=crop',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1599305445671-ac28a54c44ac?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1200&auto=format&fit=crop',
-    ],
-    appointmentTime: '2026-03-13T16:00:00Z',
-    location: { lat: -37.8136, lng: 144.9631, address: '123 Collins St, Melbourne VIC' },
-    suburb: 'Melbourne CBD',
-    rating: 4.8,
-    reviews: 120,
-    description: 'A premium barbershop experience in the heart of Melbourne. Our skilled barbers deliver sharp cuts and beard trims in a relaxed, masculine atmosphere. Last-minute slots available when cancellations occur.',
-    instagramUrl: 'https://instagram.com/thedapperbarber',
-  },
-  {
-    id: 2,
-    title: 'Cancelled Vinyasa Flow Yoga',
-    seller: 'Zenith Yoga Studio',
-    type: 'Gym Class',
-    originalPrice: 25,
-    discountedPrice: 15,
-    imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=3000&auto=format&fit=crop',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?q=80&w=1200&auto=format&fit=crop',
-    ],
-    appointmentTime: '2026-03-13T18:30:00Z',
-    location: { lat: -37.8150, lng: 144.9650, address: '45 Bourke St, Melbourne VIC' },
-    suburb: 'Melbourne CBD',
-    rating: 4.9,
-    reviews: 85,
-    description: 'Rejuvenate with our signature Vinyasa Flow class. A cancelled booking means you get this premium studio experience at a fraction of the price. All levels welcome.',
-    instagramUrl: 'https://instagram.com/zenithyogastudio',
-  },
-  {
-    id: 3,
-    title: 'Open Slot for Gel Manicure',
-    seller: 'Nails by Chloe',
-    type: 'Salon',
-    originalPrice: 55,
-    discountedPrice: 40,
-    imageUrl: 'https://images.unsplash.com/photo-1604654894610-df644ba33c36?q=80&w=2940&auto=format&fit=crop',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1604654894610-df644ba33c36?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1609445474565-6f0c6b2e7d1f?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1200&auto=format&fit=crop',
-    ],
-    appointmentTime: '2026-03-14T11:00:00Z',
-    location: { lat: -37.8120, lng: 144.9610, address: '78 Swanston St, Melbourne VIC' },
-    suburb: 'Melbourne CBD',
-    rating: 4.7,
-    reviews: 210,
-    description: 'Chloe creates stunning gel manicures that last weeks. Our open slot means you get a full gel mani with nail art at a discount. Walk-ins welcome for last-minute deals.',
-    instagramUrl: 'https://instagram.com/nailsbychloe',
-  },
-  {
-    id: 4,
-    title: 'Urgent Physio Session Available',
-    seller: 'Active Recovery Physio',
-    type: 'Physio',
-    originalPrice: 90,
-    discountedPrice: 60,
-    imageUrl: 'https://images.unsplash.com/photo-1581092912335-81539c83393c?q=80&w=2940&auto=format&fit=crop',
-    imageUrls: [
-      'https://images.unsplash.com/photo-1581092912335-81539c83393c?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=1200&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop',
-    ],
-    appointmentTime: '2026-03-14T14:00:00Z',
-    location: { lat: -37.8160, lng: 144.9680, address: '200 Exhibition St, Melbourne VIC' },
-    suburb: 'Melbourne CBD',
-    rating: 5.0,
-    reviews: 45,
-    description: 'Expert physiotherapy for sports injuries and recovery. A cancelled appointment means you can get same-day treatment at a reduced rate. Fully qualified practitioners.',
-    instagramUrl: 'https://instagram.com/activerecoveryphysio',
-  },
-];
+// Mock list used only when Supabase is not configured (e.g. createListing in-memory). No default/seed listings.
+const mockListings = [];
 
 const DEFAULT_IMAGE =
   'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop';
@@ -207,41 +121,63 @@ export const getMyListings = async (userId) => {
   });
 };
 
+/** Escape user input for use in Supabase ilike patterns (%, _ are special). */
+function escapeIlike(s) {
+  if (typeof s !== 'string') return '';
+  return s.trim().replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 /**
- * Search listings by service (title, type) and location (address, seller, area).
- * In a real app this would be a backend GET /api/search?service=...&location=...
+ * Search listings by service (title, type, seller) and location (address, seller).
+ * Uses Supabase when configured; otherwise returns [].
  */
-function matchesService(listing, serviceQuery) {
-  if (!serviceQuery || !serviceQuery.trim()) return true;
-  const q = serviceQuery.trim().toLowerCase();
-  const title = (listing.title || '').toLowerCase();
-  const type = (listing.type || '').toLowerCase();
-  const seller = (listing.seller || '').toLowerCase();
-  return title.includes(q) || type.includes(q) || seller.includes(q);
-}
+export const searchListings = async (serviceQuery, locationQuery) => {
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
 
-function matchesLocation(listing, locationQuery) {
-  if (!locationQuery || !locationQuery.trim()) return true;
-  const q = locationQuery.trim().toLowerCase();
-  const address = (listing.location?.address || '').toLowerCase();
-  const seller = (listing.seller || '').toLowerCase();
-  const type = (listing.type || '').toLowerCase();
-  return address.includes(q) || seller.includes(q) || type.includes(q);
-}
+  const service = escapeIlike(serviceQuery);
+  const location = escapeIlike(locationQuery);
 
-export const searchListings = (serviceQuery, locationQuery) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const filtered = mockListings.filter(
-        (listing) => matchesService(listing, serviceQuery) && matchesLocation(listing, locationQuery)
-      );
-      resolve([...filtered]);
-    }, 300);
-  });
+  let query = supabase
+    .from('listings')
+    .select('*')
+    .eq('status', 'available')
+    .order('created_at', { ascending: false });
+
+  if (service) {
+    const pattern = `%${service}%`;
+    query = query.or(`title.ilike.${pattern},type.ilike.${pattern},seller.ilike.${pattern}`);
+  }
+  if (location) {
+    const pattern = `%${location}%`;
+    query = query.or(`address.ilike.${pattern},seller.ilike.${pattern}`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw toError(error);
+  return (data || []).map(rowToListing);
+};
+
+/**
+ * Ensure a profile row exists for the user (id = auth user id). Fixes FK errors when
+ * listings.seller_id references public.profiles(id) and the signup trigger didn't create a profile.
+ * No-op if Supabase not configured or upsert fails (e.g. RLS); createListing will still be attempted.
+ */
+export const ensureProfileExists = async (userId, fullName = '') => {
+  if (!isSupabaseConfigured() || !userId) return;
+  const { error } = await supabase.from('profiles').upsert(
+    { id: userId, full_name: fullName || null, updated_at: new Date().toISOString() },
+    { onConflict: 'id', ignoreDuplicates: false }
+  );
+  if (error) {
+    // Don't throw; createListing may still work (e.g. if FK is to auth.users), or will show clear FK error
+  }
 };
 
 /**
  * Create a listing. Requires sellerId (current user id) when using Supabase; business role enforced in UI.
+ * If the DB has listings.seller_id referencing public.profiles(id), call ensureProfileExists(userId, fullName) before this.
  */
 export const createListing = async (listing, sellerId = null) => {
   const appointmentTime = listing.appointmentTime
@@ -275,7 +211,16 @@ export const createListing = async (listing, sellerId = null) => {
       data = d2;
       error = null;
     }
-    if (error) throw toError(error);
+    if (error) {
+      const msg = error?.message || '';
+      const isFkViolation = msg.toLowerCase().includes('foreign key') || error?.code === '23503';
+      if (isFkViolation) {
+        throw new Error(
+          'Your account is not fully set up in the database. Please sign out, sign in again, then try creating the listing. If it still fails, ensure the "Create a listing" trigger has run (see SUPABASE_SETUP.md) or that your user exists in Authentication.'
+        );
+      }
+      throw toError(error);
+    }
     return rowToListing(data);
   }
 

@@ -79,8 +79,16 @@ export const signUp = async ({ email, password, name, role = 'customer', usernam
     },
   });
   if (error) {
-    const msg = error.message || '';
-    if (msg.toLowerCase().includes('already registered') || error.code === 'user_already_exists') {
+    const msg = (error.message || '').toLowerCase();
+    const code = (error.code || '').toLowerCase();
+    const isDuplicateEmail =
+      code === 'user_already_exists' ||
+      msg.includes('already registered') ||
+      msg.includes('already exists') ||
+      msg.includes('already in use') ||
+      msg.includes('duplicate') ||
+      msg.includes('email taken');
+    if (isDuplicateEmail) {
       return { user: null, session: null, error: { message: 'This email is already registered.' } };
     }
     return { user: data?.user, session: data?.session, error };
@@ -137,19 +145,23 @@ export const signIn = async ({ email, identifier, password }) => {
     return { user: mockUser, session, error: null };
   }
 
-  let loginEmail = id.includes('@') ? id.toLowerCase() : null;
+  let loginEmail = id.includes('@') ? id.trim().toLowerCase() : null;
   if (!loginEmail) {
     const { data: profile } = await supabase.from('profiles').select('email').eq('username', id).maybeSingle();
-    if (profile?.email) loginEmail = profile.email;
+    if (profile?.email) loginEmail = (profile.email || '').trim().toLowerCase();
   }
   if (!loginEmail && !id.includes('@')) {
     return { user: null, session: null, error: { message: 'No account found with that username. Try signing in with your email.' } };
   }
-  if (!loginEmail) loginEmail = id.toLowerCase();
+  if (!loginEmail) loginEmail = id.trim().toLowerCase();
 
   const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
   if (error) {
-    return { user: null, session: null, error: { message: error.message || 'Invalid email/username or password.' } };
+    const msg = error.message || 'Invalid email or password.';
+    const hint = (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('credentials'))
+      ? ' If you just signed up, check your email and click the confirmation link first.'
+      : '';
+    return { user: null, session: null, error: { message: msg + hint } };
   }
   return { user: data?.user, session: data?.session, error: null };
 };
