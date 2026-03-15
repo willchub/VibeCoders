@@ -13,7 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 const CARD_TYPE_LABELS = { visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex', discover: 'Discover' };
 
 const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isBusiness } = useAuth();
   const [step, setStep] = useState(1);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -42,6 +42,25 @@ const BookingModal = ({ listing, isOpen, onClose, onConfirm }) => {
   }, [form.cardNumber]);
 
   if (!isOpen || !listing) return null;
+
+  if (isBusiness) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" aria-modal="true" role="dialog">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+          <p className="text-zinc-700 font-sans mb-6">
+            Business accounts cannot book listings. Sign in as a customer to book.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-3 rounded-xl bg-zinc-900 text-white font-semibold hover:bg-zinc-800 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const formatAppointmentTime = (isoString) => {
     const date = new Date(isoString);
