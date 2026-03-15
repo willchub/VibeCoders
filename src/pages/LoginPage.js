@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,9 @@ import { signIn } from '../services/auth';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setSessionFromAuth } = useAuth();
+  const redirectTo = searchParams.get('redirect') || '/marketplace';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,19 +19,22 @@ const LoginPage = () => {
     e.preventDefault();
     setError('');
     if (!email.trim() || !password) {
-      setError('Please enter email and password.');
+      setError('Please enter your email and password.');
       return;
     }
     setLoading(true);
     try {
-      const { user, session: newSession, error: authError } = await signIn({ email: email.trim(), password });
+      const { user, session: newSession, error: authError } = await signIn({
+        email: email.trim(),
+        password,
+      });
       if (authError) {
         setError(authError.message || 'Sign in failed.');
         return;
       }
       if (user) {
         setSessionFromAuth(newSession || { user });
-        navigate('/marketplace');
+        navigate(redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`, { replace: true });
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -48,11 +53,6 @@ const LoginPage = () => {
             Welcome back. Sign in to book deals and manage your account.
           </p>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg" role="alert">
-                {error}
-              </p>
-            )}
             <div>
               <label htmlFor="login-email" className="block text-sm font-medium text-brand-secondary mb-1">
                 Email
@@ -66,6 +66,11 @@ const LoginPage = () => {
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
               />
+              {error && (
+                <p className="mt-1 text-xs text-red-500" role="alert">
+                  {error}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="login-password" className="block text-sm font-medium text-brand-secondary mb-1">

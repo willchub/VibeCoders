@@ -1,5 +1,22 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
+/** Turn Supabase/PostgREST error object into a proper Error so runtimes show a readable message. */
+function toError(err) {
+  if (err instanceof Error) return err;
+  const msg = err?.message || err?.error_description || String(err?.code || 'Request failed');
+  const e = new Error(msg);
+  if (err?.code) e.code = err.code;
+  return e;
+}
+
+/** True if error indicates a missing column (run missing migrations). */
+function isMissingColumnError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  const missingColumn = msg.includes('does not exist') && (msg.includes('column') || msg.includes('seller_id') || msg.includes('business_logo'));
+  const schemaCache = msg.includes('schema cache') && (msg.includes('seller_id') || msg.includes('column'));
+  return missingColumn || schemaCache;
+}
+
 // Map DB row (snake_case) to app shape (camelCase). Build location from lat/lng/address or jsonb.
 const rowToListing = (row) => {
   let location = null;
@@ -25,6 +42,7 @@ const rowToListing = (row) => {
     description: row.description || null,
     instagramUrl: row.instagram_url || null,
     status: row.status || 'available',
+    sellerId: row.seller_id || null,
   };
 };
 
@@ -121,7 +139,7 @@ const DEFAULT_IMAGE =
   'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop';
 
 /**
- * Fetch all listings. Uses Supabase when configured, otherwise returns mock data.
+ * Fetch all listings (public marketplace). Uses Supabase when configured, otherwise returns mock data.
  */
 export const getListings = async () => {
   if (isSupabaseConfigured()) {
@@ -130,7 +148,7 @@ export const getListings = async () => {
       .select('*')
       .eq('status', 'available')
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (error) throw toError(error);
     return (data || []).map(rowToListing);
   }
   return new Promise((resolve) => {
@@ -149,7 +167,8 @@ export const getListingById = async (id) => {
   if (isSupabaseConfigured()) {
     // Supabase `listings.id` is a UUID string, so query by the raw id value.
     const { data, error } = await supabase.from('listings').select('*').eq('id', id).single();
-    if (error || !data) return null;
+    if (error && error.code !== 'PGRST116') throw toError(error);
+    if (!data) return null;
     return rowToListing(data);
   }
 
@@ -160,6 +179,31 @@ export const getListingById = async (id) => {
       const listing = mockListings.find((l) => l.id === idNum || l.id === id);
       resolve(listing ? { ...listing } : null);
     }, 200);
+  });
+};
+
+/**
+ * Fetch listings owned by the current business (seller_id = userId). For seller dashboard only.
+ */
+export const getMyListings = async (userId) => {
+  if (!userId) return [];
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('seller_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      if (isMissingColumnError(error)) return [];
+      throw toError(error);
+    }
+    return (data || []).map(rowToListing);
+  }
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const mine = mockListings.filter((l) => l.sellerId === userId);
+      resolve(mine);
+    }, 300);
   });
 };
 
@@ -197,16 +241,16 @@ export const searchListings = (serviceQuery, locationQuery) => {
 };
 
 /**
- * Create a listing. Uses Supabase when configured, otherwise mutates mock array.
+ * Create a listing. Requires sellerId (current user id) when using Supabase; business role enforced in UI.
  */
-export const createListing = async (listing) => {
+export const createListing = async (listing, sellerId = null) => {
   const appointmentTime = listing.appointmentTime
     ? new Date(listing.appointmentTime).toISOString()
     : new Date().toISOString();
 
   if (isSupabaseConfigured()) {
     const loc = listing.location;
-    const insertRow = {
+    let insertRow = {
       title: listing.title || 'Untitled',
       seller: listing.seller || 'My Business',
       type: listing.type || 'Salon',
@@ -216,14 +260,22 @@ export const createListing = async (listing) => {
       appointment_time: appointmentTime,
       rating: 4.5,
       reviews: 0,
+      seller_id: sellerId || null,
     };
     if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
       insertRow.lat = loc.lat;
       insertRow.lng = loc.lng;
       insertRow.address = loc.address || null;
     }
-    const { data, error } = await supabase.from('listings').insert(insertRow).select().single();
-    if (error) throw error;
+    let { data, error } = await supabase.from('listings').insert(insertRow).select().single();
+    if (error && isMissingColumnError(error)) {
+      const { seller_id: _sid, ...rowWithoutSellerId } = insertRow;
+      const { data: d2, error: e2 } = await supabase.from('listings').insert(rowWithoutSellerId).select().single();
+      if (e2) throw toError(e2);
+      data = d2;
+      error = null;
+    }
+    if (error) throw toError(error);
     return rowToListing(data);
   }
 
@@ -242,6 +294,7 @@ export const createListing = async (listing) => {
         rating: 4.5,
         reviews: 0,
         location: listing.location || null,
+        sellerId: sellerId || null,
       };
       mockListings.push(newListing);
       resolve(newListing);
@@ -267,7 +320,7 @@ export const saveStoreLocation = async (listingId, location) => {
       .eq('id', listingId)
       .select()
       .single();
-    if (error) throw error;
+    if (error) throw toError(error);
     return rowToListing(data);
   }
   return new Promise((resolve, reject) => {
@@ -302,7 +355,7 @@ export const createTransaction = async (payload) => {
     buyer_email: payload.buyerEmail || null,
     user_id: payload.userId || null,
   });
-  if (error) throw error;
+  if (error) throw toError(error);
   return null;
 };
 
@@ -316,7 +369,7 @@ export const markListingSold = async (listingId) => {
       .from('listings')
       .update({ status: 'sold' })
       .eq('id', listingId);
-    if (error) throw error;
+    if (error) throw toError(error);
     return;
   }
 
@@ -325,4 +378,97 @@ export const markListingSold = async (listingId) => {
   if (target) {
     target.status = 'sold';
   }
+};
+
+/**
+ * Fetch transactions (previous bookings) for the current user. Supabase: by user_id; mock: empty.
+ */
+export const getMyTransactions = async (userId) => {
+  if (!userId) return [];
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('id, created_at, listing_id, listing_title, seller, amount, currency, status, payment_method')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw toError(error);
+    return (data || []).map((row) => ({
+      id: row.id,
+      createdAt: row.created_at,
+      listingId: row.listing_id,
+      listingTitle: row.listing_title,
+      seller: row.seller,
+      amount: Number(row.amount),
+      currency: row.currency || 'USD',
+      status: row.status,
+      paymentMethod: row.payment_method,
+    }));
+  }
+  return [];
+};
+
+const BUSINESS_PROFILE_KEY = 'lastminute_business_profile';
+
+/**
+ * Get business profile (logo, Instagram, photos) for a user. Supabase: from profiles; mock: localStorage.
+ */
+export const getBusinessProfile = async (userId) => {
+  if (!userId) return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase.from('profiles').select('business_logo_url, business_instagram_url, business_photos').eq('id', userId).single();
+    if (error) {
+      if (error.code === 'PGRST116') return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+      if (isMissingColumnError(error)) return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+      throw toError(error);
+    }
+    const photos = data?.business_photos;
+    return {
+      logoUrl: data?.business_logo_url || '',
+      instagramUrl: data?.business_instagram_url || '',
+      photoUrls: Array.isArray(photos) ? photos : [],
+    };
+  }
+  try {
+    const raw = localStorage.getItem(`${BUSINESS_PROFILE_KEY}_${userId}`);
+    if (!raw) return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+    const parsed = JSON.parse(raw);
+    return {
+      logoUrl: parsed.logoUrl || '',
+      instagramUrl: parsed.instagramUrl || '',
+      photoUrls: Array.isArray(parsed.photoUrls) ? parsed.photoUrls : [],
+    };
+  } catch (_) {
+    return { logoUrl: '', instagramUrl: '', photoUrls: [] };
+  }
+};
+
+/**
+ * Update business profile. photoUrls = array of image URLs.
+ */
+export const updateBusinessProfile = async (userId, { logoUrl, instagramUrl, photoUrls }) => {
+  if (!userId) throw new Error('User ID required');
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        business_logo_url: logoUrl || null,
+        business_instagram_url: instagramUrl || null,
+        business_photos: Array.isArray(photoUrls) ? photoUrls : [],
+      })
+      .eq('id', userId);
+    if (error) {
+      if (isMissingColumnError(error)) return { logoUrl: logoUrl || '', instagramUrl: instagramUrl || '', photoUrls: photoUrls || [] };
+      throw toError(error);
+    }
+    return { logoUrl: logoUrl || '', instagramUrl: instagramUrl || '', photoUrls: photoUrls || [] };
+  }
+  const payload = {
+    logoUrl: logoUrl || '',
+    instagramUrl: instagramUrl || '',
+    photoUrls: Array.isArray(photoUrls) ? photoUrls : [],
+  };
+  try {
+    localStorage.setItem(`${BUSINESS_PROFILE_KEY}_${userId}`, JSON.stringify(payload));
+  } catch (_) {}
+  return payload;
 };
