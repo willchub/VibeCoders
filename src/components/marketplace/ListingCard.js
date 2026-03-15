@@ -146,28 +146,29 @@ const ListingCard = ({ listing, index = 0, onBook, editHref, instagramUrl }) => 
             <span className="text-xs text-brand-muted line-through">${originalPrice}</span>
             <span className="text-xl font-bold text-brand-secondary">${discountedPrice}</span>
           </div>
-          {/* Standard order: Instagram → Edit (if any) → Time/status */}
-          <div className="text-right flex items-center gap-2 flex-nowrap justify-end">
-            <a
-              href={instagramHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary transition-colors flex-shrink-0"
-              aria-label="Instagram"
-            >
-              <Instagram className="h-4 w-4" />
-            </a>
-            {editHref && (
-              <Link
-                to={editHref}
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <a
+                href={instagramHref}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-brand-secondary text-sm font-medium hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-colors flex-shrink-0"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 text-brand-primary hover:bg-brand-primary/10 hover:border-brand-primary transition-colors"
+                aria-label="Instagram"
               >
-                <Pencil className="h-4 w-4" /> Edit
-              </Link>
-            )}
-            <span className="inline-flex text-xs font-semibold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded flex-shrink-0">
+                <Instagram className="h-4 w-4" />
+              </a>
+              {editHref && (
+                <Link
+                  to={editHref}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-brand-secondary text-sm font-medium hover:bg-gray-50 hover:border-brand-primary hover:text-brand-primary transition-colors"
+                >
+                  <Pencil className="h-4 w-4" /> Edit
+                </Link>
+              )}
+            </div>
+            <span className="inline-flex text-xs font-semibold text-brand-primary bg-brand-primary/10 px-2 py-1 rounded">
               {isSold ? 'Sold' : isExpired ? 'Expired' : formatTime(appointmentTime)}
             </span>
           </div>

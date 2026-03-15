@@ -6,8 +6,6 @@ import ListingCard from '../components/marketplace/ListingCard';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyListings, getBusinessProfile } from '../services/api';
 
-// Default barber/salon logo when none set — matches ListingCard for a coherent look
-const DEFAULT_LOGO = 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=200&h=200&fit=crop';
 const FALLBACK_INSTAGRAM = 'https://instagram.com';
 
 const BusinessHomePage = () => {
@@ -57,26 +55,18 @@ const BusinessHomePage = () => {
     <GlassPageLayout title={businessName} maxWidth="max-w-7xl">
       <GlassCard className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <img
-              src={profile.logoUrl || DEFAULT_LOGO}
-              alt="Business logo"
-              className="w-16 h-16 rounded-xl object-cover border border-gray-200"
-              onError={(e) => { e.target.src = DEFAULT_LOGO; }}
-            />
-            <div>
-              <h1 className="text-2xl font-semibold text-zinc-900">{businessName}</h1>
-              <a
-                href={(profile.instagramUrl || FALLBACK_INSTAGRAM).startsWith('http') ? (profile.instagramUrl || FALLBACK_INSTAGRAM) : `https://instagram.com/${(profile.instagramUrl || '').replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-brand-primary hover:opacity-80 transition-opacity"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
-                <span className="text-sm font-medium">Instagram</span>
-              </a>
-            </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-zinc-900">{businessName}</h1>
+            <a
+              href={(profile.instagramUrl || FALLBACK_INSTAGRAM).startsWith('http') ? (profile.instagramUrl || FALLBACK_INSTAGRAM) : `https://instagram.com/${(profile.instagramUrl || '').replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-brand-primary hover:opacity-80 transition-opacity"
+              aria-label="Instagram"
+            >
+              <Instagram className="w-5 h-5" />
+              <span className="text-sm font-medium">Instagram</span>
+            </a>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/marketplace" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-zinc-900 font-medium hover:bg-gray-50 transition-colors">
