@@ -95,6 +95,15 @@ REACT_APP_SUPABASE_ANON_KEY=your-anon-key
 
 ---
 
+## Login not working after register
+
+If you can register but **cannot sign in** with the same email/password:
+
+1. **Email confirmation:** In Supabase go to **Authentication → Providers → Email**. If **Confirm email** is enabled, new users must click the link in the confirmation email before they can sign in. Either turn off **Confirm email** for development (sign-in works immediately), or leave it on and use the link in the email—after register the app sends you to the login page with a message to check your email.
+2. **Profiles table:** Run `supabase-add-username-email.sql` in the SQL Editor so `profiles` has `username` and `email` columns. New signups will then save correctly and you can sign in with email or username.
+
+---
+
 ## Files involved
 
 | File | Role |

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
@@ -10,22 +10,24 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const { setSessionFromAuth } = useAuth();
   const redirectTo = searchParams.get('redirect') || '/marketplace';
-  const [email, setEmail] = useState('');
+  const confirmMessage = searchParams.get('message') === 'confirm';
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const signInIntentRef = useRef('customer');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!email.trim() || !password) {
-      setError('Please enter your email and password.');
+    if (!identifier.trim() || !password) {
+      setError('Please enter your email or username and password.');
       return;
     }
     setLoading(true);
     try {
       const { user, session: newSession, error: authError } = await signIn({
-        email: email.trim(),
+        identifier: identifier.trim(),
         password,
       });
       if (authError) {
@@ -34,7 +36,8 @@ const LoginPage = () => {
       }
       if (user) {
         setSessionFromAuth(newSession || { user });
-        navigate(redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`, { replace: true });
+        const destination = signInIntentRef.current === 'business' ? '/seller-dashboard' : (redirectTo.startsWith('/') ? redirectTo : `/${redirectTo}`);
+        navigate(destination, { replace: true });
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -52,18 +55,23 @@ const LoginPage = () => {
           <p className="font-sans text-brand-muted text-sm mb-6">
             Welcome back. Sign in to book deals and manage your account.
           </p>
+          {confirmMessage && (
+            <p className="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2" role="status">
+              Account created. Check your email to confirm your account, then sign in below.
+            </p>
+          )}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="login-email" className="block text-sm font-medium text-brand-secondary mb-1">
-                Email
+              <label htmlFor="login-identifier" className="block text-sm font-medium text-brand-secondary mb-1">
+                Email or username
               </label>
               <input
-                id="login-email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                id="login-identifier"
+                type="text"
+                autoComplete="username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="you@example.com or username"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
               />
               {error && (
@@ -86,13 +94,24 @@ const LoginPage = () => {
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
               />
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-brand-secondary text-white font-semibold hover:bg-brand-secondary/90 transition-colors disabled:opacity-70"
-            >
-              {loading ? 'Signing in…' : 'Sign in'}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="submit"
+                disabled={loading}
+                onClick={() => { signInIntentRef.current = 'customer'; }}
+                className="flex-1 py-3 rounded-xl bg-brand-secondary text-white font-semibold hover:bg-brand-secondary/90 transition-colors disabled:opacity-70"
+              >
+                {loading ? 'Signing in…' : 'Sign in as user'}
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                onClick={() => { signInIntentRef.current = 'business'; }}
+                className="flex-1 py-3 rounded-xl border-2 border-brand-secondary text-brand-secondary font-semibold hover:bg-brand-secondary/10 transition-colors disabled:opacity-70"
+              >
+                {loading ? 'Signing in…' : 'Sign in as business'}
+              </button>
+            </div>
           </form>
           <p className="mt-6 text-center text-sm text-brand-muted">
             Don't have an account?{' '}
