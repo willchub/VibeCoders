@@ -507,6 +507,118 @@ export const getMyTransactions = async (userId) => {
   return [];
 };
 
+// -----------------------------------------------------------------------------
+// Favourites (customer-only). Expired listings are removed when loading.
+// -----------------------------------------------------------------------------
+
+const FAVOURITES_KEY = 'lastminute_favourites';
+
+/** Get set of favourited listing IDs for a user. */
+export const getFavouriteIds = async (userId) => {
+  if (!userId) return new Set();
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('user_favourites')
+      .select('listing_id')
+      .eq('user_id', userId);
+    if (error) {
+      if (isRecoverableSchemaError(error)) return new Set();
+      throw toError(error);
+    }
+    return new Set((data || []).map((r) => r.listing_id));
+  }
+  try {
+    const raw = localStorage.getItem(`${FAVOURITES_KEY}_${userId}`);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (_) {
+    return new Set();
+  }
+};
+
+/** Add a listing to favourites. */
+export const addFavourite = async (userId, listingId) => {
+  if (!userId || !listingId) return;
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase.from('user_favourites').insert({ user_id: userId, listing_id: listingId });
+    if (error && error.code !== '23505') throw toError(error); // 23505 = unique violation, already favourited
+    return;
+  }
+  const ids = await getFavouriteIds(userId);
+  ids.add(listingId);
+  localStorage.setItem(`${FAVOURITES_KEY}_${userId}`, JSON.stringify([...ids]));
+};
+
+/** Remove a listing from favourites. */
+export const removeFavourite = async (userId, listingId) => {
+  if (!userId || !listingId) return;
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('user_favourites')
+      .delete()
+      .eq('user_id', userId)
+      .eq('listing_id', listingId);
+    if (error) throw toError(error);
+    return;
+  }
+  const ids = await getFavouriteIds(userId);
+  ids.delete(listingId);
+  localStorage.setItem(`${FAVOURITES_KEY}_${userId}`, JSON.stringify([...ids]));
+};
+
+/** Get favourited listings for a user. Removes expired ones from favourites and returns only non-expired. */
+export const getFavouriteListings = async (userId) => {
+  if (!userId) return [];
+  const now = new Date();
+  if (isSupabaseConfigured()) {
+    const { data: rows, error } = await supabase
+      .from('user_favourites')
+      .select('listing_id')
+      .eq('user_id', userId);
+    if (error) {
+      if (isRecoverableSchemaError(error)) return [];
+      throw toError(error);
+    }
+    const listingIds = [...new Set((rows || []).map((r) => r.listing_id))];
+    const expiredIds = [];
+    const listings = [];
+    for (const id of listingIds) {
+      try {
+        const listing = await getListingById(id);
+        if (!listing) continue;
+        const apt = new Date(listing.appointmentTime || 0);
+        const isExpired = apt < now || listing.status === 'expired' || listing.status === 'sold';
+        if (isExpired) expiredIds.push(id);
+        else listings.push(listing);
+      } catch (_) {
+        expiredIds.push(id);
+      }
+    }
+    for (const lid of expiredIds) {
+      await supabase.from('user_favourites').delete().eq('user_id', userId).eq('listing_id', lid);
+    }
+    return listings;
+  }
+  const ids = await getFavouriteIds(userId);
+  if (ids.size === 0) return [];
+  const listingIds = [...ids];
+  const out = [];
+  const stillFav = new Set();
+  for (const id of listingIds) {
+    try {
+      const listing = await getListingById(id);
+      if (!listing) continue;
+      const apt = new Date(listing.appointmentTime || 0);
+      if (apt < now || listing.status === 'expired' || listing.status === 'sold') continue;
+      out.push(listing);
+      stillFav.add(id);
+    } catch (_) {}
+  }
+  localStorage.setItem(`${FAVOURITES_KEY}_${userId}`, JSON.stringify([...stillFav]));
+  return out;
+};
+
 const BUSINESS_PROFILE_KEY = 'lastminute_business_profile';
 
 /**

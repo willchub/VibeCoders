@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Store, PlusCircle, LayoutGrid } from 'lucide-react';
+import { Store, PlusCircle, LayoutGrid, Instagram } from 'lucide-react';
 import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
 import ListingCard from '../components/marketplace/ListingCard';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyListings, getBusinessProfile } from '../services/api';
+
+// Default barber/salon logo when none set — matches ListingCard for a coherent look
+const DEFAULT_LOGO = 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=200&h=200&fit=crop';
+const FALLBACK_INSTAGRAM = 'https://instagram.com';
 
 const BusinessHomePage = () => {
   const { user } = useAuth();
@@ -42,6 +46,8 @@ const BusinessHomePage = () => {
             listing={listing}
             index={idx}
             editHref={`/seller-dashboard?edit=${listing.id}`}
+            businessLogoUrl={profile.logoUrl || undefined}
+            instagramUrl={profile.instagramUrl || undefined}
           />
         ))}
       </div>
@@ -52,29 +58,24 @@ const BusinessHomePage = () => {
       <GlassCard className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            {profile.logoUrl ? (
-              <img
-                src={profile.logoUrl}
-                alt="Business logo"
-                className="w-16 h-16 rounded-xl object-cover border border-gray-200"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-xl bg-brand-primary/10 flex items-center justify-center">
-                <Store className="h-8 w-8 text-brand-primary" />
-              </div>
-            )}
+            <img
+              src={profile.logoUrl || DEFAULT_LOGO}
+              alt="Business logo"
+              className="w-16 h-16 rounded-xl object-cover border border-gray-200"
+              onError={(e) => { e.target.src = DEFAULT_LOGO; }}
+            />
             <div>
               <h1 className="text-2xl font-semibold text-zinc-900">{businessName}</h1>
-              {profile.instagramUrl && (
-                <a
-                  href={profile.instagramUrl.startsWith('http') ? profile.instagramUrl : `https://instagram.com/${profile.instagramUrl.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-brand-primary hover:underline"
-                >
-                  Instagram
-                </a>
-              )}
+              <a
+                href={(profile.instagramUrl || FALLBACK_INSTAGRAM).startsWith('http') ? (profile.instagramUrl || FALLBACK_INSTAGRAM) : `https://instagram.com/${(profile.instagramUrl || '').replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-brand-primary hover:opacity-80 transition-opacity"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+                <span className="text-sm font-medium">Instagram</span>
+              </a>
             </div>
           </div>
           <div className="flex items-center gap-3">

@@ -10,8 +10,8 @@ const NOMINATIM_HEADERS = {
   'User-Agent': 'VibeCoders-Marketplace/1.0 (last-minute marketplace)',
 };
 
-// Only allow locations in these countries across the app
-const ALLOWED_COUNTRY_CODES = ['au', 'il'];
+// Only allow locations in Australia across the app (all maps and location pickers)
+const ALLOWED_COUNTRY_CODES = ['au'];
 
 export async function searchAddressSuggestions(query) {
   if (!query || query.trim().length < 2) return [];
@@ -19,7 +19,7 @@ export async function searchAddressSuggestions(query) {
     q: query.trim(),
     format: 'json',
     limit: '8',
-    countrycodes: ALLOWED_COUNTRY_CODES.join(','), // Restrict autocomplete to Australia + Israel
+    countrycodes: ALLOWED_COUNTRY_CODES.join(','), // Australia only
   });
   const res = await fetch(`${NOMINATIM_BASE}/search?${params}`, {
     headers: NOMINATIM_HEADERS,
@@ -31,7 +31,7 @@ export async function searchAddressSuggestions(query) {
 
 /**
  * Reverse geocode: get address string for a lat/lng.
- * Returns display_name or null if not found or outside allowed countries.
+ * Returns display_name or null if not found or outside Australia.
  */
 export async function reverseGeocode(lat, lng) {
   if (typeof lat !== 'number' || typeof lng !== 'number') return null;

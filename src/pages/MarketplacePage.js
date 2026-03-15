@@ -10,7 +10,8 @@ import ListingCard from '../components/marketplace/ListingCard';
 import StoresMapView from '../components/map/StoresMapView';
 import BookingModal from './BookingModal';
 import SearchAutocomplete from '../components/common/SearchAutocomplete';
-import { getListings, searchListings } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { getListings, searchListings, getBusinessProfile } from '../services/api';
 import { searchAddressSuggestions } from '../services/geocode';
 
 const CATEGORIES = ['All Services', 'Barbershop', 'Gym Class', 'Salon', 'Nail Salon'];
@@ -20,7 +21,9 @@ const VIEW_MAP = 'map';
 const MarketplacePage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isBusiness } = useAuth();
   const [listings, setListings] = useState([]);
+  const [sellerProfiles, setSellerProfiles] = useState({}); // sellerId -> { logoUrl, instagramUrl }
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -39,6 +42,20 @@ const MarketplacePage = () => {
       try {
         const data = await getListings();
         setListings(data);
+        // Fetch business profiles for unique sellers (logo + Instagram for cards)
+        const sellerIds = [...new Set(data.map((l) => l.sellerId).filter(Boolean))];
+        const profiles = {};
+        await Promise.all(
+          sellerIds.map(async (id) => {
+            try {
+              const p = await getBusinessProfile(id);
+              profiles[id] = p;
+            } catch (_) {
+              profiles[id] = { logoUrl: '', instagramUrl: '', photoUrls: [] };
+            }
+          })
+        );
+        setSellerProfiles(profiles);
       } catch (error) {
         console.error('Failed to fetch listings:', error);
         setListingsError(error?.message || 'Failed to load listings.');
@@ -49,15 +66,47 @@ const MarketplacePage = () => {
     fetchListings();
   }, []);
 
-  // Open booking modal when navigating from detail page with "Book now"
+  // When showing search results, fetch seller profiles for any sellers we don't have yet
+  useEffect(() => {
+    if (!searchResults?.length) return;
+    const missingIds = [...new Set(searchResults.map((l) => l.sellerId).filter(Boolean))].filter(
+      (id) => !sellerProfiles[id]
+    );
+    if (missingIds.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      missingIds.map(async (id) => {
+        try {
+          const p = await getBusinessProfile(id);
+          return { id, ...p };
+        } catch (_) {
+          return { id, logoUrl: '', instagramUrl: '', photoUrls: [] };
+        }
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      setSellerProfiles((prev) => {
+        const next = { ...prev };
+        results.forEach(({ id, logoUrl, instagramUrl }) => {
+          next[id] = { logoUrl, instagramUrl, photoUrls: [] };
+        });
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [searchResults]);
+
+  // Open booking modal when navigating from detail page with "Book now" (only for customers)
   useEffect(() => {
     const toBook = location.state?.openBooking;
-    if (toBook) {
+    if (toBook && !isBusiness) {
       setSelectedListing(toBook);
       setIsModalOpen(true);
+    }
+    if (toBook) {
       navigate(location.pathname, { replace: true, state: {} }); // clear state
     }
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, navigate, isBusiness]);
 
   const handleSearch = useCallback(async () => {
     setSearchLoading(true);
@@ -80,6 +129,37 @@ const MarketplacePage = () => {
       ? baseList
       : baseList.filter((listing) => listing.type === activeCategory);
 
+  // Live stats for hero panel (from current marketplace listings)
+  const heroStats = useMemo(() => {
+    if (!listings.length) {
+      return {
+        avgSavingsPercent: null,
+        availableSlots: 0,
+        localSalons: 0,
+        livePercent: 0,
+        sellers: [],
+      };
+    }
+    const totalSavings = listings.reduce((acc, l) => {
+      const pct = l.originalPrice > 0 ? ((l.originalPrice - l.discountedPrice) / l.originalPrice) * 100 : 0;
+      return acc + pct;
+    }, 0);
+    const avgSavings = totalSavings / listings.length;
+    const livePercent = Math.min(100, Math.round((listings.length / 12) * 100));
+    const sellerToType = new Map();
+    listings.forEach((l) => {
+      if (l.seller && !sellerToType.has(l.seller)) sellerToType.set(l.seller, l.type || 'Salon');
+    });
+    const sellers = [...sellerToType.entries()].map(([name, type]) => ({ name, type }));
+    return {
+      avgSavingsPercent: Math.ceil(avgSavings),
+      availableSlots: listings.length,
+      localSalons: sellers.length,
+      livePercent,
+      sellers,
+    };
+  }, [listings]);
+
   // Autocomplete suggestions from listings
   const serviceSuggestions = useMemo(() => {
     const seen = new Set();
@@ -94,6 +174,7 @@ const MarketplacePage = () => {
 
 
   const handleBookClick = (listing) => {
+    if (isBusiness) return; // businesses cannot book
     setSelectedListing(listing);
     setIsModalOpen(true);
   };
@@ -112,7 +193,7 @@ const MarketplacePage = () => {
     <div className="min-h-screen flex flex-col bg-white text-zinc-900">
       <Header variant="light" />
 
-      <MarketplaceHero>
+      <MarketplaceHero stats={heroStats} loading={loading}>
         <form
           className="bg-white backdrop-blur-sm p-2 rounded-2xl md:rounded-full shadow-xl flex flex-col md:flex-row gap-2 max-w-2xl border border-gray-200"
           onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
@@ -229,7 +310,11 @@ const MarketplacePage = () => {
                   Map / Near me
                 </motion.button>
               </div>
-              <select className="hidden sm:block rounded-full border border-gray-300 bg-gray-50 text-zinc-900 text-sm focus:ring-2 focus:ring-brand-primary/30 px-4 py-2 outline-none">
+              <select
+                className="hidden sm:block font-sans text-sm font-medium text-zinc-900 bg-white border border-gray-200 rounded-full pl-4 pr-10 py-2.5 outline-none cursor-pointer shadow-inner hover:border-gray-300 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition-colors appearance-none bg-[length:1.25rem] bg-[right_0.5rem_center] bg-no-repeat"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2371737a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")" }}
+                aria-label="Sort by"
+              >
                 <option>Recommended</option>
                 <option>Price: Low to High</option>
                 <option>Highest Discount</option>
@@ -250,14 +335,19 @@ const MarketplacePage = () => {
               <p className="text-zinc-500 text-center py-12">Loading listings...</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {filteredListings.map((listing, idx) => (
-                  <ListingCard
-                    key={listing.id}
-                    listing={listing}
-                    index={idx}
-                    onBook={handleBookClick}
-                  />
-                ))}
+                {filteredListings.map((listing, idx) => {
+                  const profile = listing.sellerId ? sellerProfiles[listing.sellerId] : null;
+                  return (
+                    <ListingCard
+                      key={listing.id}
+                      listing={listing}
+                      index={idx}
+                      onBook={handleBookClick}
+                      businessLogoUrl={profile?.logoUrl || undefined}
+                      instagramUrl={profile?.instagramUrl || undefined}
+                    />
+                  );
+                })}
               </div>
             )}
 
