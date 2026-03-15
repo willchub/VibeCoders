@@ -3,10 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, MapPin } from 'lucide-react';
 import GlassPageLayout, { GlassCard } from '../components/ui/GlassPageLayout';
 import LocationPicker from '../components/map/LocationPicker';
+import ImageDropzone from '../components/ImageDropzone';
 import { useAuth } from '../contexts/AuthContext';
 import { getMyListings, getListingById, saveStoreLocation, createListing, updateListing, deleteListing, getBusinessProfile, updateBusinessProfile } from '../services/api';
 
-const LISTING_TYPES = ['Barbershop', 'Gym Class', 'Salon', 'Physio'];
+const LISTING_TYPES = ['Barbershop', 'Gym Class', 'Salon', 'Nail Salon'];
 
 // Preset locations for the dropdown when creating a listing
 const PRESET_LOCATIONS = [
@@ -294,6 +295,7 @@ const SellerDashboardPage = () => {
             <label htmlFor="listing-type" className="block text-sm font-medium text-zinc-700 mb-1">Category</label>
             <select id="listing-type" name="type" value={form.type} onChange={handleChange} className={selectClass}>
               {LISTING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="listing-original" className="block text-sm font-medium text-brand-secondary mb-1">
@@ -329,19 +331,19 @@ const SellerDashboardPage = () => {
               </div>
             </div>
             <div>
-              <label htmlFor="listing-image" className="block text-sm font-medium text-brand-secondary mb-1">
-                Image URL
+              <label className="block text-sm font-medium text-brand-secondary mb-1">
+                Listing image
               </label>
-              <input
-                id="listing-image"
-                name="imageUrl"
-                type="url"
+              <ImageDropzone
                 value={form.imageUrl}
-                onChange={handleChange}
-                placeholder="https://..."
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-brand-secondary placeholder:text-brand-muted focus:ring-2 focus:ring-brand-primary focus:border-brand-primary outline-none"
+                onChange={(url) => {
+                  setForm((prev) => ({ ...prev, imageUrl: url }));
+                  setError('');
+                  setSuccess('');
+                }}
+                userId={user?.id}
+                disabled={editLoading}
               />
-              <p className="mt-1 text-xs text-brand-muted">Optional. Leave blank for a default image.</p>
             </div>
             <div>
               <label htmlFor="listing-time" className="block text-sm font-medium text-brand-secondary mb-1">
@@ -438,6 +440,7 @@ const SellerDashboardPage = () => {
                 </button>
               )}
             </div>
+          </div>
           </form>
       </GlassCard>
 

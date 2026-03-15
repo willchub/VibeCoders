@@ -47,7 +47,7 @@ const ListingForm = () => {
             <option value="Barbershop">Barbershop</option>
             <option value="Salon">Salon</option>
             <option value="Gym Class">Gym Class</option>
-            <option value="Physio">Physio</option>
+            <option value="Nail Salon">Nail Salon</option>
           </select>
         </div>
 

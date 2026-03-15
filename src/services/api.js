@@ -35,6 +35,7 @@ const rowToListing = (row) => {
   } else if (row.location && typeof row.location === 'object') {
     location = row.location;
   }
+  const defaultImg = getDefaultListingImage(row.type);
   return {
     id: row.id,
     title: row.title,
@@ -42,8 +43,8 @@ const rowToListing = (row) => {
     type: row.type,
     originalPrice: row.original_price,
     discountedPrice: row.discounted_price,
-    imageUrl: row.image_url,
-    imageUrls: row.image_urls || (row.image_url ? [row.image_url] : null),
+    imageUrl: row.image_url || defaultImg,
+    imageUrls: row.image_urls || (row.image_url ? [row.image_url] : [defaultImg]),
     appointmentTime: row.appointment_time,
     rating: row.rating ?? 4.5,
     reviews: row.reviews ?? 0,
@@ -61,6 +62,41 @@ const mockListings = [];
 
 const DEFAULT_IMAGE =
   'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800&auto=format&fit=crop';
+
+/** Default listing image per type when the business doesn't upload one. Add paths as you add images. */
+const DEFAULT_IMAGES_BY_TYPE = {
+  Salon: '/images/defaults/salon-default.png',
+  Barbershop: '/images/defaults/barbershop-default.png',
+  'Gym Class': '/images/defaults/gym-default.png',
+  'Nail Salon': '/images/defaults/nail-salon-default.png',
+};
+
+const getDefaultListingImage = (type) => DEFAULT_IMAGES_BY_TYPE[type] || DEFAULT_IMAGE;
+
+const LISTING_IMAGES_BUCKET = 'listing-images';
+
+/**
+ * Upload a listing image to Supabase Storage. Returns the public URL.
+ * Requires bucket "listing-images" to exist with public read access.
+ * @param {File} file - Image file (e.g. image/jpeg, image/png)
+ * @param {string} userId - Current user id for path
+ * @returns {Promise<string>} Public URL of the uploaded image
+ */
+export const uploadListingImage = async (file, userId) => {
+  if (!isSupabaseConfigured()) {
+    throw new Error('Image upload requires Supabase. Set REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY.');
+  }
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const safeExt = ext || 'jpg';
+  const path = `${userId}/${crypto.randomUUID()}.${safeExt}`;
+  const { error } = await supabase.storage.from(LISTING_IMAGES_BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw toError(error);
+  const { data } = supabase.storage.from(LISTING_IMAGES_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+};
 
 /**
  * Fetch all listings (public marketplace). Only returns non-expired listings (appointment_time in the future).
@@ -243,7 +279,7 @@ export const createListing = async (listing, sellerId = null) => {
       type: listing.type || 'Salon',
       original_price: Number(listing.originalPrice) || 0,
       discounted_price: Number(listing.discountedPrice) || 0,
-      image_url: listing.imageUrl || DEFAULT_IMAGE,
+      image_url: listing.imageUrl || getDefaultListingImage(listing.type || 'Salon'),
       appointment_time: appointmentTime,
       rating: 4.5,
       reviews: 0,
@@ -286,7 +322,7 @@ export const createListing = async (listing, sellerId = null) => {
         type: listing.type || 'Salon',
         originalPrice: Number(listing.originalPrice) || 0,
         discountedPrice: Number(listing.discountedPrice) || 0,
-        imageUrl: listing.imageUrl || DEFAULT_IMAGE,
+        imageUrl: listing.imageUrl || getDefaultListingImage(listing.type || 'Salon'),
         appointmentTime,
         rating: 4.5,
         reviews: 0,

@@ -8,7 +8,7 @@ const TYPE_GRADIENTS = {
   Salon: 'bg-gradient-to-br from-rose-50 to-white',
   Barbershop: 'bg-gradient-to-br from-amber-50 to-white',
   'Gym Class': 'bg-gradient-to-br from-orange-50 to-white',
-  Physio: 'bg-gradient-to-br from-stone-100 to-white',
+  'Nail Salon': 'bg-gradient-to-br from-stone-100 to-white',
   default: 'bg-gradient-to-br from-rose-50/80 to-white', // soft blush fallback
 };
 

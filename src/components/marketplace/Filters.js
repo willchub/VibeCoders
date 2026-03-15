@@ -1,7 +1,7 @@
 import React from 'react';
 
 const Filters = ({ onFilterChange, onPriceChange, maxPrice, selectedCategory }) => {
-  const categories = ['All', 'Barbershop', 'Gym Class', 'Salon', 'Physio'];
+  const categories = ['All', 'Barbershop', 'Gym Class', 'Salon', 'Nail Salon'];
 
   return (
     <div className="filters-container">
