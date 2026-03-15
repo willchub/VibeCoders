@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/VibeCoders/static/css/main.e71673b9.css",
+    "main.js": "/VibeCoders/static/js/main.b4d2168c.js",
+    "index.html": "/VibeCoders/index.html",
+    "main.e71673b9.css.map": "/VibeCoders/static/css/main.e71673b9.css.map",
+    "main.b4d2168c.js.map": "/VibeCoders/static/js/main.b4d2168c.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e71673b9.css",
+    "static/js/main.b4d2168c.js"
+  ]
+}
