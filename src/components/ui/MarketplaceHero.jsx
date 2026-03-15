@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star, Sparkles, Scissors, Heart, Gem, CircleDot } from 'lucide-react';
 import VideoBackground from './VideoBackground';
+import GradualBlur from './GradualBlur';
 
 const StatItem = ({ value, label }) => (
   <div className="flex flex-col items-center justify-center transition-transform hover:-translate-y-1 cursor-default">
@@ -165,6 +166,17 @@ export default function MarketplaceHero({ children }) {
           </div>
         </div>
       </div>
+
+      <GradualBlur
+        target="parent"
+        position="bottom"
+        height="7rem"
+        strength={2}
+        divCount={5}
+        curve="bezier"
+        exponential
+        opacity={1}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import Header from '../components/common/Header';
 import Footer from '../components/common/Footer';
 import MarketplaceHero from '../components/ui/MarketplaceHero';
+import GradualBlur from '../components/ui/GradualBlur';
 import ListingCard from '../components/marketplace/ListingCard';
 import StoresMapView from '../components/map/StoresMapView';
 import BookingModal from './BookingModal';
@@ -274,6 +275,16 @@ const MarketplacePage = () => {
           </>
         )}
       </main>
+
+      <GradualBlur
+        target="page"
+        position="bottom"
+        height="4rem"
+        strength={1}
+        divCount={4}
+        curve="ease-out"
+        opacity={0.9}
+      />
 
       <Footer variant="light" />
 
